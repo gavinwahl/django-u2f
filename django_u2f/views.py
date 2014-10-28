@@ -41,7 +41,10 @@ class AddKeyView(FormView):
     form_class = KeyResponseForm
 
     def get_origin(self):
-        return '{scheme}://{host}'.format(scheme=self.request.scheme, host=self.request.get_host())
+        return '{scheme}://{host}'.format(
+            scheme='https' if self.request.is_secure else 'http',
+            host=self.request.get_host(),
+        )
 
     def get_context_data(self, **kwargs):
         kwargs = super(AddKeyView, self).get_context_data(**kwargs)
