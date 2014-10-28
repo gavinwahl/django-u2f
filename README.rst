@@ -14,8 +14,10 @@ their second factor. django-u2f provides its own login view to handle that.
 Demo
 ====
 
-To see a demo, use the test project included in the repo. Run syncdb and
-create a user, then start runserver.
+To see a demo, use the test project included in the repo. Install django-u2f
+with ``pip install -e .``, then install the demo-specific requirements with
+``cd testproj; pip install -r requirements.txt``. Run syncdb and create a user,
+then start runserver.
 
 For now, it's required to use a chrome version greater than 38, and
 install an extension. The chrome extension only works on domains that
@@ -41,5 +43,5 @@ Helpful links
   https://github.com/Yubico/python-u2flib-server
 - The Chrome extension, unfortunately required for the time being:
   https://chrome.google.com/webstore/detail/fido-u2f-universal-2nd-fa/pfboblefjcgdjicmnffhdgionmgcdmne
-- A description of the process from a developer's perspective Yubico:
+- A description of the process from a developer's perspective from Yubico:
   https://developers.yubico.com/U2F/Libraries/Using_a_library.html
