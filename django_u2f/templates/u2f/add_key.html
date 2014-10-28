@@ -1,0 +1,24 @@
+{% extends "u2f/base.html" %}
+{% load argonauts %}
+
+{% block content %}
+{{ block.super }}
+<p>To add a security key to your account, insert (and tap) it.</p>
+
+<p id="u2f-status"></p>
+<form method="post" id="u2f-form">
+    {% csrf_token %}
+    {{ form.response }}
+</form>
+
+<script>
+    var challenge = {{ challenge|json }};
+    u2f.register([challenge], [], function(resp) {
+        var form = document.getElementById('u2f-form');
+        form.response.value = JSON.stringify(resp);
+        if ( ! handleU2FError(resp) ) {
+            form.submit();
+        }
+    })
+</script>
+{% endblock %}

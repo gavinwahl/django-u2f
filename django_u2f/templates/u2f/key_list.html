@@ -1,0 +1,25 @@
+{% extends "u2f/base.html" %}
+
+{% block content %}
+{{ block.super }}
+
+<table>
+    <thead>
+        <tr>
+            <th>Added on
+            <th>Last used on
+    <tbody>
+        {% for key in object_list %}
+        <tr>
+            <td>{{ key.created_at }}
+            <td>{{ key.last_used_at|default:"Never" }}
+            <td><form method="post">{% csrf_token %}
+                    <input name="key_id" type="hidden" value="{{ key.pk }}">
+                    <input type="submit" name="delete" value="X">
+                </form>
+        {% endfor %}
+</table>
+
+<a href="{% url 'django_u2f.views.add_key' %}">Add another key</a>
+
+{% endblock %}

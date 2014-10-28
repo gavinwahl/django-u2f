@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script src="chrome-extension://pfboblefjcgdjicmnffhdgionmgcdmne/u2f-api.js"></script>
+<script>
+    // TODO: put into its own file
+    // TODO: check if extension is installed
+    function handleU2FError(resp) {
+        if ( resp.errorCode ) {
+            document.getElementById('u2f-status').textContent = 'Error with U2F'
+            return true;
+        } else {
+            return false;
+        }
+    }
+</script>
+{{ block.super }}
+{% endblock %}

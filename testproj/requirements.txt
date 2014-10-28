@@ -1,0 +1,3 @@
+django_extensions
+werkzeug
+django-debug-toolbar
