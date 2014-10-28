@@ -19,8 +19,8 @@ with ``pip install -e .``, then install the demo-specific requirements with
 ``cd testproj; pip install -r requirements.txt``. Run syncdb and create a user,
 then start runserver.
 
-For now, it's required to use a chrome version greater than 38, and
-install an extension. The chrome extension only works on domains that
+For now, it's required to use a Chrome version greater than 38, and
+install an extension. The Chrome extension only works on domains that
 have a dot in them, so you can't use ``localhost``, but instead an alias
 for 127.0.0.1 in your hosts file. I used ``localhost.com``.
 
@@ -34,6 +34,18 @@ U2F token will be required.
 
 You can administrate the keys attached to your account on the key
 management page as well, at the URL ``/u2f/keys``.
+
+Using U2F keys on linux
+=======================
+
+Some distros don't come with udev rules to make USB HID /dev/
+nodes accessible to normal users. If your key doesn't light up
+and start flashing when you expect it to, this might be what is
+happening. See https://github.com/Yubico/libu2f-host/issues/2 and
+https://github.com/Yubico/libu2f-host/blob/master/70-u2f.rules for some
+discussion of the rule to make it accessible. If you just want a quick
+temporary fix, you can run ``sudo chmod 666 /dev/hidraw*`` every time
+after you plug in your key (The files disappear after unplugging).
 
 
 Helpful links
