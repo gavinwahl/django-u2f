@@ -116,7 +116,10 @@ class VerifyKeyView(FormView):
         device.last_used_at = timezone.now()
         device.save()
         auth.login(self.request, self.user)
+
         del self.request.session['u2f_authentication_challenges']
+        del self.request.session['u2f_pre_verify_user_pk']
+        del self.request.session['u2f_pre_verify_user_backend']
 
         redirect_to = self.request.REQUEST.get(auth.REDIRECT_FIELD_NAME, '')
         if not is_safe_url(url=redirect_to, host=self.request.get_host()):
