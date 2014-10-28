@@ -1,7 +1,11 @@
 Django U2F
 ----------
 
-django-u2f provides support for FIDO U2F security tokens in Django
+django-u2f provides support for FIDO U2F security tokens in Django.
+
+django-u2f isn't yet production ready, but is a working proof of
+concept. There are many TODOs sprinkled around the code that should be
+fixed before relying on it.
 
 Installation
 ============
