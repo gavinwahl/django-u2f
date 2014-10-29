@@ -42,7 +42,8 @@ class AddKeyView(FormView):
 
     def get_origin(self):
         return '{scheme}://{host}'.format(
-            scheme='https' if self.request.is_secure else 'http',
+            # BBB: Django >= 1.7 has request.scheme
+            scheme='https' if self.request.is_secure() else 'http',
             host=self.request.get_host(),
         )
 
