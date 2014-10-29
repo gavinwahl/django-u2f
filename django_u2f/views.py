@@ -10,7 +10,7 @@ from django.contrib import auth, messages
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
-from django.utils.http import is_safe_url
+from django.utils.http import is_safe_url, urlencode
 from django.shortcuts import resolve_url, get_object_or_404
 from django.utils import timezone
 
@@ -33,7 +33,13 @@ class U2FLoginView(FormView):
         else:
             self.request.session['u2f_pre_verify_user_pk'] = user.pk
             self.request.session['u2f_pre_verify_user_backend'] = user.backend
-            return HttpResponseRedirect(reverse(verify_key))
+
+            verify_key_url = reverse(verify_key)
+            redirect_to = self.request.REQUEST.get(auth.REDIRECT_FIELD_NAME, '')
+            if is_safe_url(url=redirect_to, host=self.request.get_host()):
+                verify_key_url += '?' + urlencode({auth.REDIRECT_FIELD_NAME: redirect_to})
+
+            return HttpResponseRedirect(verify_key_url)
 
 
 class AddKeyView(FormView):
