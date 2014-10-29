@@ -10,10 +10,12 @@ fixed before relying on it.
 Installation
 ============
 
-Add ``django_u2f`` to ``INSTALLED_APPS`` and include ``django_u2f.urls``
-somewhere in your url patterns. Make sure that django's built in login view
-does not not have a urlpattern, because it will authenticate users without
-their second factor. django-u2f provides its own login view to handle that.
+Add ``django_u2f`` to ``INSTALLED_APPS`` and include
+``django_u2f.urls`` somewhere in your url patterns. Set ``LOGIN_URL
+= 'django_u2f.views.login'``. Make sure that Django's built in login
+view does not not have a urlpattern, because it will authenticate users
+without their second factor. django-u2f provides its own login view to
+handle that.
 
 Demo
 ====
