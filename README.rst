@@ -1,7 +1,11 @@
 Django U2F
 ----------
 
-django-u2f provides support for FIDO U2F security tokens in Django.
+django-u2f provides support for FIDO U2F security tokens in Django. The
+functionality is similar to the `Security Key two-factor authentication that
+Google recently announced
+<http://googleonlinesecurity.blogspot.com/2014/10/strengthening-2-step-verification-with.html>`_,
+and uses the same tokens.
 
 django-u2f isn't yet production ready, but is a working proof of
 concept. There are many TODOs sprinkled around the code that should be
