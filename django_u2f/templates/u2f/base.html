@@ -2,9 +2,16 @@
 
 {% block content %}
 <script src="chrome-extension://pfboblefjcgdjicmnffhdgionmgcdmne/u2f-api.js"></script>
+{{ block.super }}
+
+<div id="extension-not-installed-error-message" style="display: none">
+    You must be using Chrome with the
+    <a href="https://chrome.google.com/webstore/detail/fido-u2f-universal-2nd-fa/pfboblefjcgdjicmnffhdgionmgcdmne">
+    U2F extension</a> installed to use a security key.
+</div>
+
 <script>
     // TODO: put into its own file
-    // TODO: check if extension is installed
     function handleU2FError(resp) {
         if ( resp.errorCode ) {
             document.getElementById('u2f-status').textContent = 'Error with U2F'
@@ -13,6 +20,7 @@
             return false;
         }
     }
+    if ( typeof window.u2f === 'undefined' )
+      document.getElementById('extension-not-installed-error-message').style.display = 'block';
 </script>
-{{ block.super }}
 {% endblock %}
