@@ -4,7 +4,7 @@ from django import forms
 from django.views.generic import FormView, ListView
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import load_backend
-from django.contrib.auth.views import login as auth_login_view
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib import auth, messages
 from django.conf import settings
@@ -25,21 +25,57 @@ class U2FLoginView(FormView):
     form_class = AuthenticationForm
     template_name = 'u2f/login.html'
 
+    @property
+    def is_admin(self):
+        try:
+            return self.kwargs['current_app'] == 'admin'
+        except KeyError:
+            return False
+
+    def get_template_names(self):
+        if self.is_admin:
+            return 'admin/login.html'
+        else:
+            return self.template_name
+
     def form_valid(self, form):
         user = form.get_user()
         if not user.u2f_keys.exists():
             # no keys registered, use single-factor auth
-            return auth_login_view(self.request)
+            return original_auth_login_view(self.request, **self.kwargs)
         else:
             self.request.session['u2f_pre_verify_user_pk'] = user.pk
             self.request.session['u2f_pre_verify_user_backend'] = user.backend
 
             verify_key_url = reverse(verify_key)
             redirect_to = self.request.REQUEST.get(auth.REDIRECT_FIELD_NAME, '')
+            try:
+                # acting as admin login view, handle weird django <= 1.6
+                # behavior where login view is used without redirecting
+                if self.is_admin:
+                    redirect_to = self.kwargs['extra_context'][auth.REDIRECT_FIELD_NAME]
+            except KeyError:
+                pass
+
+            params = {}
             if is_safe_url(url=redirect_to, host=self.request.get_host()):
-                verify_key_url += '?' + urlencode({auth.REDIRECT_FIELD_NAME: redirect_to})
+                params[auth.REDIRECT_FIELD_NAME] = redirect_to
+            if self.is_admin:
+                params['admin'] = 1
+            if params:
+                verify_key_url += '?' + urlencode(params)
 
             return HttpResponseRedirect(verify_key_url)
+
+    def get_context_data(self, **kwargs):
+        kwargs = super(U2FLoginView, self).get_context_data(**kwargs)
+        kwargs[auth.REDIRECT_FIELD_NAME] = self.request.REQUEST.get(auth.REDIRECT_FIELD_NAME, '')
+        kwargs.update(self.kwargs.get('extra_context', {}))
+        return kwargs
+
+
+class AdminU2FLoginView(U2FLoginView):
+    template_name = 'admin/login.html'
 
 
 class AddKeyView(FormView):
@@ -106,6 +142,10 @@ class VerifyKeyView(FormView):
         ]
         self.request.session['u2f_authentication_challenges'] = challenges
         kwargs['challenges'] = challenges
+        if self.request.GET.get('admin'):
+            kwargs['base_template'] = 'admin/base_site.html'
+        else:
+            kwargs['base_template'] = 'base.html'
         return kwargs
 
     def form_valid(self, form):
@@ -155,3 +195,6 @@ add_key = login_required(AddKeyView.as_view())
 verify_key = VerifyKeyView.as_view()
 login = U2FLoginView.as_view()
 keys = login_required(KeyManagementView.as_view())
+
+original_auth_login_view = auth_views.login
+auth_views.login = U2FLoginView.as_view()
