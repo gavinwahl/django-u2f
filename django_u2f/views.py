@@ -1,6 +1,5 @@
 import json
 
-from django import forms
 from django.views.generic import FormView, ListView
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import load_backend
@@ -16,9 +15,7 @@ from django.utils import timezone
 
 from u2flib_server import u2f_v2 as u2f
 
-
-class KeyResponseForm(forms.Form):
-    response = forms.CharField()
+from django_u2f.forms import KeyResponseForm
 
 
 class U2FLoginView(FormView):
@@ -151,14 +148,18 @@ class VerifyKeyView(FormView):
     def form_valid(self, form):
         response = json.loads(form.cleaned_data['response'])
         challenges = self.request.session['u2f_authentication_challenges']
-        # find the right challenge, the based on the key the user inserted
-        challenge = [c for c in challenges if c['keyHandle'] == response['keyHandle']][0]
-        device = self.user.u2f_keys.get(key_handle=response['keyHandle'])
-        login_counter, touch_asserted = u2f.verify_authenticate(
-            device.to_json(),
-            challenge,
-            response,
-        )
+        try:
+            # find the right challenge, the based on the key the user inserted
+            challenge = [c for c in challenges if c['keyHandle'] == response['keyHandle']][0]
+            device = self.user.u2f_keys.get(key_handle=response['keyHandle'])
+            login_counter, touch_asserted = u2f.verify_authenticate(
+                device.to_json(),
+                challenge,
+                response,
+            )
+        except Exception as e:
+            form.add_error('__all__', str(e))
+            return self.form_invalid(form)
         # TODO: store login_counter and verify it's increasing
         device.last_used_at = timezone.now()
         device.save()

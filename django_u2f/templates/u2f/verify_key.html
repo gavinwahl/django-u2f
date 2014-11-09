@@ -14,7 +14,7 @@ If it doesn't, remove and re-insert it.
 
 <form method="post" id="u2f-form">
     {% csrf_token %}
-    {{ form.response }}
+    {{ form.as_ul }}
 </form>
 
 <script>

@@ -90,5 +90,5 @@ LOGIN_REDIRECT_URL = 'django_u2f.views.keys'
 LOGIN_URL = 'django_u2f.views.login'
 
 TEMPLATE_DIRS = (
-        os.path.join(BASE_DIR, 'templates'),
+    os.path.join(BASE_DIR, 'templates'),
 )
