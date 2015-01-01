@@ -91,8 +91,16 @@ class AddKeyView(FormView):
         challenge = u2f.start_register(self.get_origin())
         self.request.session['u2f_registration_challenge'] = challenge
         kwargs['challenge'] = challenge
-        # TODO: also blacklist the keys already added to the account (the
-        # second argument of u2f.register)
+
+        # Create a SignRequest for each key that has already been added to the
+        # account.
+        # This can be passed to u2f.register as the second parameter to prevent
+        # re-registering the same key for the same user.
+        sign_requests = [
+            u2f.start_authenticate(d.to_json()) for d in self.request.user.u2f_keys.all()
+        ]
+        kwargs['sign_requests'] = sign_requests
+
         return kwargs
 
     def form_valid(self, form):

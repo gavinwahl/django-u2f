@@ -13,7 +13,8 @@
 
 <script>
     var challenge = {{ challenge|json }};
-    u2f.register([challenge], [], function(resp) {
+    var signRequests = {{ sign_requests|json }};
+    u2f.register([challenge], signRequests, function(resp) {
         var form = document.getElementById('u2f-form');
         form.response.value = JSON.stringify(resp);
         if ( ! handleU2FError(resp) ) {
