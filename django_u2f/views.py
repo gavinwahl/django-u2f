@@ -7,6 +7,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib import auth, messages
 from django.conf import settings
+from django.dispatch import Signal
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.utils.http import is_safe_url, urlencode
@@ -16,6 +17,9 @@ from django.utils import timezone
 from u2flib_server import u2f_v2 as u2f
 
 from django_u2f.forms import KeyResponseForm
+
+
+key_counter_nonincreasing = Signal(providing_args=["user", "device"])
 
 
 class U2FLoginView(FormView):
@@ -168,8 +172,14 @@ class VerifyKeyView(FormView):
         except Exception as e:
             form.add_error('__all__', str(e))
             return self.form_invalid(form)
-        # TODO: store login_counter and verify it's increasing
+        if login_counter <= device.last_counter_value:
+            key_counter_nonincreasing.send(sender=self.__class__,
+                user=self.user, device=device)
+            form.add_error(None, "Login counter didn't increase; key may have "
+                "been spoofed.")
+            return self.form_invalid(form)
         device.last_used_at = timezone.now()
+        device.last_counter_value = login_counter
         device.save()
         auth.login(self.request, self.user)
 

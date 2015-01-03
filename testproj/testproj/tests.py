@@ -83,6 +83,9 @@ class TestU2F(U2FTest):
             'response': json.dumps(device_response),
         })
         self.assertEqual(self.client.session[SESSION_KEY], self.user.id)
+        key_obj = self.user.u2f_keys.get()
+        # Last counter value should have gotten set
+        self.assertNotEqual(0, key_obj.last_counter_value)
 
     def test_failed_u2f_login(self):
         self.enable_u2f()
@@ -138,6 +141,30 @@ class TestU2F(U2FTest):
         })
         self.assertTrue(other_user.u2f_keys.exists())
         self.assertEqual(r.status_code, 404)
+
+    def test_nonincreasing_counter(self):
+        self.enable_u2f()
+
+        # Authenticate using U2F once
+        r = self.login()
+        device_response = self.set_challenge()
+        self.client.post(r['location'], {
+            'response': json.dumps(device_response),
+        })
+
+        # Now logout and authenticate with U2F again; the counter value
+        # returned will be the same, so this should trigger the check for a
+        # nonincreasing counter.
+        self.client.logout()
+        r = self.login()
+        device_response = self.set_challenge()
+        r = self.client.post(r['location'], {
+            'response': json.dumps(device_response),
+        })
+
+        # Check that the login didn't work and the warning message gets shown.
+        self.assertNotIn(SESSION_KEY, self.client.session)
+        self.assertIn('spoofed', r.content)
 
 
 class TestAdminLogin(U2FTest):
