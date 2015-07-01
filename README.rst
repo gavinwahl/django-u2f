@@ -29,13 +29,10 @@ with ``pip install -e .``, then install the demo-specific requirements with
 ``cd testproj; pip install -r requirements.txt``. Run syncdb and create a user,
 then start runserver.
 
-For now, it's required to use a Chrome version greater than 38, and
-install an extension. The Chrome extension only works on domains that
-have a dot in them, so you can't use ``localhost``, but instead an alias
-for 127.0.0.1 in your hosts file. I used ``localhost.com``.
+For now the only supported browser is Chrome, version 41 or higher.
 
 
-Start by going to http://localhost.com:8000/u2f/login. Since you
+Start by going to http://localhost:8000/u2f/login. Since you
 haven't added any security keys yet, you will be logged in with just a
 username and password. Once logged in, click 'Add another key' on the
 key management page and follow the instructions. Now your account is
@@ -43,7 +40,7 @@ protected by two factor authentication, and when you log in again your
 U2F token will be required.
 
 You can administrate the keys attached to your account on the key
-management page as well, at the URL ``/u2f/keys``.
+management page as well, at the URL http://localhost:8000/u2f/keys.
 
 Using U2F keys on linux
 =======================
@@ -63,7 +60,5 @@ Helpful links
 
 - The code to actually implement the crypto in python:
   https://github.com/Yubico/python-u2flib-server
-- The Chrome extension, unfortunately required for the time being:
-  https://chrome.google.com/webstore/detail/fido-u2f-universal-2nd-fa/pfboblefjcgdjicmnffhdgionmgcdmne
 - A description of the process from a developer's perspective from Yubico:
   https://developers.yubico.com/U2F/Libraries/Using_a_library.html
