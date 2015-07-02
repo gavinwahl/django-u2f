@@ -27,12 +27,14 @@ Demo
 To see a demo, use the test project included in the repo. Install django-u2f
 with ``pip install -e .``, then install the demo-specific requirements with
 ``cd testproj; pip install -r requirements.txt``. Run syncdb and create a user,
-then start runserver.
+create a self-signed certificate with ``./mkcert.sh``, 
+then start ``./manage.py runserver_plus --cert localhost``.
 
 For now the only supported browser is Chrome, version 41 or higher.
+U2F also requires that the page is served over a secure connection.
 
 
-Start by going to http://localhost:8000/u2f/login. Since you
+Start by going to https://localhost:8000/u2f/login. Since you
 haven't added any security keys yet, you will be logged in with just a
 username and password. Once logged in, click 'Add another key' on the
 key management page and follow the instructions. Now your account is
@@ -40,7 +42,7 @@ protected by two factor authentication, and when you log in again your
 U2F token will be required.
 
 You can administrate the keys attached to your account on the key
-management page as well, at the URL http://localhost:8000/u2f/keys.
+management page as well, at the URL https://localhost:8000/u2f/keys.
 
 Using U2F keys on linux
 =======================
