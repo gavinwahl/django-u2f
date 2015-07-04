@@ -3,6 +3,7 @@ env:
   matrix:
     - DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.6.x.zip
     - DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.7.x.zip
+    - DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.8.x.zip
 install:
   - sudo apt-get install swig
   - pip install -q $DJANGO_PACKAGE 

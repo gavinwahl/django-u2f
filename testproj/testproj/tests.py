@@ -70,7 +70,7 @@ class TestU2F(U2FTest):
     def test_normal_login(self):
         r = self.login()
         self.assertTrue(r['location'].endswith('/next/'))
-        self.assertEqual(self.client.session[SESSION_KEY], self.user.id)
+        self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
 
     def test_u2f_login(self):
         self.enable_u2f()
@@ -82,7 +82,7 @@ class TestU2F(U2FTest):
         r = self.client.post(r['location'], {
             'response': json.dumps(device_response),
         })
-        self.assertEqual(self.client.session[SESSION_KEY], self.user.id)
+        self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
 
     def test_failed_u2f_login(self):
         self.enable_u2f()
@@ -174,7 +174,7 @@ class TestAdminLogin(U2FTest):
             'response': json.dumps(device_response),
         })
 
-        self.assertEqual(self.client.session[SESSION_KEY], self.user.id)
+        self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
         self.assertTrue(r['location'].endswith(self.admin_url))
 
     def test_login_without_u2f(self):
@@ -192,4 +192,4 @@ class TestAdminLogin(U2FTest):
             'next': self.admin_url,
         })
         self.assertTrue(r['location'].endswith(self.admin_url))
-        self.assertEqual(self.client.session[SESSION_KEY], self.user.id)
+        self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
