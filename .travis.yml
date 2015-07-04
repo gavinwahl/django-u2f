@@ -6,6 +6,7 @@ env:
     - DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.8.x.zip
 install:
   - sudo apt-get install swig
+  - pip install --upgrade pip
   - pip install -q $DJANGO_PACKAGE 
   - pip install -e .
   - pip install -r ./testproj/requirements.txt
