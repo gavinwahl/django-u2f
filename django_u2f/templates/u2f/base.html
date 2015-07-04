@@ -1,13 +1,16 @@
 {% extends base_template|default:"base.html" %}
+{% load staticfiles %}
 
 {% block content %}
-<script src="chrome-extension://pfboblefjcgdjicmnffhdgionmgcdmne/u2f-api.js"></script>
+<script src="{% static 'django_u2f/u2f-api.js' %}"></script>
 {{ block.super }}
 
-<div id="extension-not-installed-error-message" style="display: none">
-    You must be using Chrome with the
-    <a href="https://chrome.google.com/webstore/detail/fido-u2f-universal-2nd-fa/pfboblefjcgdjicmnffhdgionmgcdmne">
-    U2F extension</a> installed to use a security key.
+<div id="u2f-not-defined-error" style="display: none">
+    You must be using a compatible browser to use a U2F security key.
+    The following browsers are known to be compatible
+    <ul>
+        <li>Chrome 41 and higher
+    </ul>
 </div>
 
 <script>
@@ -21,6 +24,6 @@
         }
     }
     if ( typeof window.u2f === 'undefined' )
-      document.getElementById('extension-not-installed-error-message').style.display = 'block';
+      document.getElementById('u2f-not-defined-error').style.display = 'block';
 </script>
 {% endblock %}

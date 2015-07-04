@@ -1,3 +1,4 @@
 django_extensions
+pyOpenSSL
 werkzeug
 django-debug-toolbar
