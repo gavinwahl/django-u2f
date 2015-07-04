@@ -7,5 +7,6 @@ install:
   - sudo apt-get install swig
   - pip install -q $DJANGO_PACKAGE 
   - pip install -e .
+  - pip install -r ./testproj/requirements.txt
   - pip freeze
 script: ./testproj/manage.py test testproj
