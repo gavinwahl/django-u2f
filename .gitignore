@@ -4,3 +4,6 @@ __pycache__
 db.sqlite3
 
 testproj/localhost.*
+
+# Unit test / coverage reports
+.tox/
