@@ -1,9 +1,9 @@
 language: python
 env:
   matrix:
-    - DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.6.x.tar.gz
-    - DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.7.x.tar.gz
-    - DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.8.x.tar.gz
+    - DJANGO_PACKAGE="Django>=1.6,<1.7"
+    - DJANGO_PACKAGE="Django>=1.7,<1.8"
+    - DJANGO_PACKAGE="Django>=1.8,<1.9"
 install:
   - sudo apt-get install swig
   - pip install --upgrade pip
