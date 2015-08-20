@@ -6,4 +6,7 @@ db.sqlite3
 testproj/localhost.*
 
 # Unit test / coverage reports
+htmlcov/
 .tox/
+.coverage
+.coverage.*
