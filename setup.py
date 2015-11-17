@@ -7,7 +7,7 @@ setup(
     install_requires=[
         'django-argonauts',
         'python-u2flib-server',
-        'django',
+        'django>=1.8',
     ],
     author='Gavin Wahl',
     author_email='gavinwahl@gmail.com',

@@ -18,17 +18,11 @@ cache:
 python:
   - 2.7
 env:
-  - DJANGO_PACKAGE="Django>=1.6,<1.7"
-  - DJANGO_PACKAGE="Django>=1.7,<1.8"
   - DJANGO_PACKAGE="Django>=1.8,<1.9"
-matrix:
-  include:
-    - python: 2.6
-      env: DJANGO_PACKAGE="Django>=1.6,<1.7"
 install:
   - pip install --upgrade pip wheel
   - pip install -q $DJANGO_PACKAGE 
-  - pip install -e .
+  - pip install --pre -e .
   - pip install -r ./testproj/requirements.txt
   - pip freeze
 script: ./testproj/manage.py test testproj
