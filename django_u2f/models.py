@@ -17,3 +17,13 @@ class U2FKey(models.Model):
             'keyHandle': self.key_handle,
             'appId': self.app_id,
         }
+
+
+class BackupCode(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='backup_codes')
+    code = models.CharField(max_length=8)
+
+    class Meta:
+        unique_together = [
+            ('user', 'code')
+        ]

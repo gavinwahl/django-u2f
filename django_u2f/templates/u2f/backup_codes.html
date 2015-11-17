@@ -1,0 +1,21 @@
+{% extends "u2f/base.html" %}
+
+{% block content %}
+{{ block.super }}
+
+<a href="{% url 'django_u2f.views.two_factor_settings' %}">Back to settings</a>
+
+<ul>
+  {% for code in object_list %}
+  <li>{{ code.code }}</li>
+  {% empty %}
+  <li>You do not have any backup codes! Please create some!</li>
+  {% endfor %}
+</ul>
+
+<form method="POST">
+  {% csrf_token %}
+  <input type="submit" value="Create some backup codes">
+</form>
+
+{% endblock %}

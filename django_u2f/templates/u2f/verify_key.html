@@ -14,11 +14,12 @@ If it doesn't, remove and re-insert it.
 
 <form method="post" id="u2f-form">
     {% csrf_token %}
-    {{ form.as_ul }}
+    {{ forms.u2f.as_ul }}
+    <button value="u2f" name="type">Submit</button>
 </form>
 
 <script>
-    var challenges = {{ challenges|json }};
+    var challenges = {{ forms.u2f.challenges|json }};
     u2f.sign(challenges, function(resp) {
         var form = document.getElementById('u2f-form');
         form.response.value = JSON.stringify(resp);
@@ -27,4 +28,12 @@ If it doesn't, remove and re-insert it.
         }
     })
 </script>
+
+Or, use a backup code:
+<form method="POST">
+  {% csrf_token %}
+  {{ forms.backup.as_ul }}
+  <button value="backup" name="type">Submit</button>
+</form>
+
 {% endblock %}

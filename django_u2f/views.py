@@ -1,6 +1,6 @@
-import json
+import string
 
-from django.views.generic import FormView, ListView
+from django.views.generic import FormView, ListView, TemplateView
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import load_backend
 from django.contrib.auth import views as auth_views
@@ -11,11 +11,12 @@ from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.utils.http import is_safe_url, urlencode
 from django.shortcuts import resolve_url, get_object_or_404
-from django.utils import timezone
+from django.utils.crypto import get_random_string
+from django.db import transaction, IntegrityError
 
 from u2flib_server import u2f_v2 as u2f
 
-from django_u2f.forms import KeyResponseForm
+from django_u2f.forms import KeyResponseForm, BackupCodeForm
 
 
 class U2FLoginView(FormView):
@@ -29,6 +30,9 @@ class U2FLoginView(FormView):
         except KeyError:
             return False
 
+    def requires_two_factor(self, user):
+        return user.u2f_keys.exists() or user.backup_codes.exists()
+
     def get_template_names(self):
         if self.is_admin:
             return 'admin/login.html'
@@ -37,7 +41,7 @@ class U2FLoginView(FormView):
 
     def form_valid(self, form):
         user = form.get_user()
-        if not user.u2f_keys.exists():
+        if not self.requires_two_factor(user):
             # no keys registered, use single-factor auth
             return original_auth_login_view(self.request, **self.kwargs)
         else:
@@ -45,7 +49,7 @@ class U2FLoginView(FormView):
             self.request.session['u2f_pre_verify_user_backend'] = user.backend
 
             verify_key_url = reverse(verify_key)
-            redirect_to = self.request.REQUEST.get(auth.REDIRECT_FIELD_NAME, '')
+            redirect_to = self.request.POST.get(auth.REDIRECT_FIELD_NAME, '')
             try:
                 # acting as admin login view, handle weird django <= 1.6
                 # behavior where login view is used without redirecting
@@ -66,7 +70,7 @@ class U2FLoginView(FormView):
 
     def get_context_data(self, **kwargs):
         kwargs = super(U2FLoginView, self).get_context_data(**kwargs)
-        kwargs[auth.REDIRECT_FIELD_NAME] = self.request.REQUEST.get(auth.REDIRECT_FIELD_NAME, '')
+        kwargs[auth.REDIRECT_FIELD_NAME] = self.request.POST.get(auth.REDIRECT_FIELD_NAME, '')
         kwargs.update(self.kwargs.get('extra_context', {}))
         return kwargs
 
@@ -85,6 +89,14 @@ class AddKeyView(FormView):
             scheme='https' if self.request.is_secure() else 'http',
             host=self.request.get_host(),
         )
+
+    def get_form_kwargs(self):
+        kwargs = super(AddKeyView, self).get_form_kwargs()
+        kwargs.update(
+            user=self.request.user,
+            request=self.request,
+        )
+        return kwargs
 
     def get_context_data(self, **kwargs):
         kwargs = super(AddKeyView, self).get_context_data(**kwargs)
@@ -117,9 +129,12 @@ class AddKeyView(FormView):
         return HttpResponseRedirect(reverse(keys))
 
 
-class VerifyKeyView(FormView):
+class VerifyKeyView(TemplateView):
     template_name = 'u2f/verify_key.html'
-    form_class = KeyResponseForm
+    form_classes = {
+        'u2f': KeyResponseForm,
+        'backup': BackupCodeForm,
+    }
 
     def get_user(self):
         try:
@@ -140,47 +155,60 @@ class VerifyKeyView(FormView):
             return HttpResponseRedirect(reverse(login))
         return super(VerifyKeyView, self).dispatch(request, *args, **kwargs)
 
+    def post(self, request, *args, **kwargs):
+        forms = self.get_forms()
+        form = forms[request.POST['type']]
+        if form.is_valid():
+            return self.form_valid(form, forms)
+        else:
+            return self.form_invalid(forms)
+
+    def form_invalid(self, forms):
+        return self.render_to_response(self.get_context_data(forms=forms))
+
+    def get_form_kwargs(self):
+        return {
+            'user': self.user,
+            'request': self.request,
+        }
+
+    def get_forms(self):
+        kwargs = self.get_form_kwargs()
+        if self.request.method == 'GET':
+            forms = {key: form(**kwargs) for key, form in self.form_classes.items()}
+        else:
+            method = self.request.POST['type']
+            forms = {key: form(**kwargs) for key, form in self.form_classes.items()}
+            forms[method] = self.form_classes[method](self.request.POST, **kwargs)
+        return forms
+
     def get_context_data(self, **kwargs):
+        if 'forms' not in kwargs:
+            kwargs['forms'] = self.get_forms()
         kwargs = super(VerifyKeyView, self).get_context_data(**kwargs)
-        challenges = [
-            u2f.start_authenticate(d.to_json()) for d in self.user.u2f_keys.all()
-        ]
-        self.request.session['u2f_authentication_challenges'] = challenges
-        kwargs['challenges'] = challenges
         if self.request.GET.get('admin'):
             kwargs['base_template'] = 'admin/base_site.html'
         else:
             kwargs['base_template'] = 'base.html'
         return kwargs
 
-    def form_valid(self, form):
-        response = json.loads(form.cleaned_data['response'])
-        challenges = self.request.session['u2f_authentication_challenges']
-        try:
-            # find the right challenge, the based on the key the user inserted
-            challenge = [c for c in challenges if c['keyHandle'] == response['keyHandle']][0]
-            device = self.user.u2f_keys.get(key_handle=response['keyHandle'])
-            login_counter, touch_asserted = u2f.verify_authenticate(
-                device.to_json(),
-                challenge,
-                response,
-            )
-        except Exception as e:
-            form.add_error('__all__', str(e))
-            return self.form_invalid(form)
-        # TODO: store login_counter and verify it's increasing
-        device.last_used_at = timezone.now()
-        device.save()
+    def form_valid(self, form, forms):
+        if not form.validate_second_factor():
+            return self.form_invalid(forms)
+
         auth.login(self.request, self.user)
 
-        del self.request.session['u2f_authentication_challenges']
         del self.request.session['u2f_pre_verify_user_pk']
         del self.request.session['u2f_pre_verify_user_backend']
 
-        redirect_to = self.request.REQUEST.get(auth.REDIRECT_FIELD_NAME, '')
+        redirect_to = self.request.POST.get(auth.REDIRECT_FIELD_NAME, '')
         if not is_safe_url(url=redirect_to, host=self.request.get_host()):
             redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
         return HttpResponseRedirect(redirect_to)
+
+
+class TwoFactorSettingsView(TemplateView):
+    template_name = 'u2f/two_factor_settings.html'
 
 
 class KeyManagementView(ListView):
@@ -200,10 +228,33 @@ class KeyManagementView(ListView):
         return HttpResponseRedirect(reverse(keys))
 
 
+class BackupCodesView(ListView):
+    template_name = 'u2f/backup_codes.html'
+
+    def get_queryset(self):
+        return self.request.user.backup_codes.all()
+
+    def create_backup_code(self):
+        while True:
+            with transaction.atomic():
+                try:
+                    code = get_random_string(length=6, allowed_chars=string.digits)
+                    return self.request.user.backup_codes.create(code=code)
+                except IntegrityError:
+                    pass
+
+    def post(self, request):
+        for i in range(10):
+            self.create_backup_code()
+        return HttpResponseRedirect(self.request.build_absolute_uri())
+
+
 add_key = login_required(AddKeyView.as_view())
 verify_key = VerifyKeyView.as_view()
 login = U2FLoginView.as_view()
 keys = login_required(KeyManagementView.as_view())
+two_factor_settings = login_required(TwoFactorSettingsView.as_view())
+backup_codes = login_required(BackupCodesView.as_view())
 
 original_auth_login_view = auth_views.login
 auth_views.login = U2FLoginView.as_view()

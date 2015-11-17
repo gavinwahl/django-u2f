@@ -1,0 +1,10 @@
+{% extends "u2f/base.html" %}
+
+{% block content %}
+{{ block.super }}
+
+<a href="{% url 'django_u2f.views.keys' %}">Manage U2F keys</a>
+<a href="{% url 'django_u2f.views.backup_codes' %}">Manage backup codes</a>
+
+
+{% endblock %}
