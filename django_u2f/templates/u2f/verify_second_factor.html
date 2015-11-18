@@ -1,0 +1,64 @@
+{% extends "u2f/base.html" %}
+{% load argonauts %}
+
+{% block content %}
+{{ block.super }}
+
+<p>
+  Please verify one of the authentication methods below.
+</p>
+
+{% if user.u2f_keys.exists %}
+<div class="method u2f">
+  <p>
+  Insert your Security Key
+  </p>
+  <p>
+  If your Security Key has a button, tap it.<br>
+  If it doesn't, remove and re-insert it.
+  </p>
+
+  <form method="post" id="u2f-form">
+      {% csrf_token %}
+      {{ forms.u2f.as_ul }}
+      <input type="hidden" name="type" value="u2f">
+  </form>
+
+  <script>
+      var challenges = {{ forms.u2f.challenges|json }};
+      u2f.sign(challenges, function(resp) {
+          var form = document.getElementById('u2f-form');
+          form.response.value = JSON.stringify(resp);
+          if ( ! handleU2FError(resp) ) {
+              form.submit();
+          }
+      })
+  </script>
+</div>
+{% endif %}
+
+{% if user.totp_devices.exists %}
+<div class="method totp">
+  <p>Enter an Authenticator (TOTP) Token:</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ forms.totp.as_ul }}
+    <button value="totp" name="type">Submit</button>
+  </form>
+</div>
+{% endif %}
+
+{% if user.backup_codes.exists %}
+<div class="method backup">
+  <p>Use a backup code:</p>
+
+  <form method="POST">
+    {% csrf_token %}
+    {{ forms.backup.as_ul }}
+    <button value="backup" name="type">Submit</button>
+  </form>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -8,6 +8,8 @@ setup(
         'django-argonauts',
         'python-u2flib-server',
         'django>=1.8',
+        'qrcode',
+        'six',
     ],
     author='Gavin Wahl',
     author_email='gavinwahl@gmail.com',

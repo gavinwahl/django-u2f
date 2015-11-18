@@ -1,13 +1,23 @@
+import os
+import re
 import json
+import string
+import datetime
+from base64 import b32decode
 
 from django.test import TestCase, Client
 from django.core.urlresolvers import reverse
 from django.contrib.auth import get_user_model, SESSION_KEY
+from django.utils.crypto import get_random_string
+from django.utils import timezone
+
+from django_u2f.forms import BackupCodeForm, TOTPForm
+from django_u2f import oath
 
 User = get_user_model()
 
 
-class U2FTest(TestCase):
+class TwoFactorTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_superuser(
@@ -17,6 +27,14 @@ class U2FTest(TestCase):
         )
         self.login_url = reverse('django_u2f.views.login')
 
+    def login(self):
+        return self.client.post(self.login_url, {
+            'username': 'test',
+            'password': 'asdfasdf',
+            'next': '/next/'
+        })
+
+class U2FTest(TwoFactorTest):
     def enable_u2f(self):
         self.user.u2f_keys.create(
             public_key='BCux01toHSq_5YHfsw3EAqfGGKirLoHnDqAuW5RedtP8dGbJTJ55-QEJ_alPDM06kHw7UOUOCawdHinHVrNbnKw',
@@ -60,13 +78,6 @@ class U2FTest(TestCase):
 
 
 class TestU2F(U2FTest):
-    def login(self):
-        return self.client.post(self.login_url, {
-            'username': 'test',
-            'password': 'asdfasdf',
-            'next': '/next/'
-        })
-
     def test_normal_login(self):
         r = self.login()
         self.assertTrue(r['location'].endswith('/next/'))
@@ -76,12 +87,15 @@ class TestU2F(U2FTest):
         self.enable_u2f()
         r = self.login()
         self.assertNotIn(SESSION_KEY, self.client.session)
-        self.assertIn(reverse('django_u2f.views.verify_key'), r['location'])
+        self.assertIn(reverse('django_u2f.views.verify_second_factor'), r['location'])
 
         device_response = self.set_challenge()
         r = self.client.post(r['location'], {
             'response': json.dumps(device_response),
+            'type': 'u2f',
         })
+        self.assertEquals(r.status_code, 302)
+        self.assertTrue(r['location'].endswith('/next/'))
         self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
 
     def test_failed_u2f_login(self):
@@ -91,12 +105,13 @@ class TestU2F(U2FTest):
         device_response['signatureData'] = 'a' + device_response['signatureData'][1:]
         r = self.client.post(r['location'], {
             'response': json.dumps(device_response),
+            'type': 'u2f',
         })
         self.assertNotIn(SESSION_KEY, self.client.session)
         self.assertIn('Challenge signature verification failed!', r.content)
 
     def test_verify_when_not_logged_in(self):
-        r = self.client.get(reverse('django_u2f.views.verify_key'))
+        r = self.client.get(reverse('django_u2f.views.verify_second_factor'))
         self.assertTrue(r['location'].endswith(self.login_url))
 
     def test_add_key(self):
@@ -164,7 +179,7 @@ class TestAdminLogin(U2FTest):
             'password': 'asdfasdf',
         })
         self.assertNotIn(SESSION_KEY, self.client.session)
-        self.assertIn(reverse('django_u2f.views.verify_key'), r['location'])
+        self.assertIn(reverse('django_u2f.views.verify_second_factor'), r['location'])
 
         verify_key_response = self.client.get(r['location'])
         self.assertIn('Django administration', verify_key_response.content)
@@ -172,6 +187,7 @@ class TestAdminLogin(U2FTest):
         device_response = self.set_challenge()
         r = self.client.post(r['location'], {
             'response': json.dumps(device_response),
+            'type': 'u2f',
         })
 
         self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
@@ -193,3 +209,153 @@ class TestAdminLogin(U2FTest):
         })
         self.assertTrue(r['location'].endswith(self.admin_url))
         self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
+
+
+class TestBackupCode(TwoFactorTest):
+    def enable_backupcode(self):
+        code = get_random_string(length=6, allowed_chars=string.digits)
+        self.user.backup_codes.create(code=code)
+        return code
+
+    def test_validation_error(self):
+        self.enable_backupcode()
+        r = self.login()
+        self.assertNotIn(SESSION_KEY, self.client.session)
+        self.assertIn(reverse('django_u2f.views.verify_second_factor'), r['location'])
+
+        r = self.client.post(r['location'], {
+            'type': 'backup',
+        })
+        self.assertIn('This field is required.', r.content)
+
+    def test_code_required_and_login(self):
+        code = self.enable_backupcode()
+        r = self.login()
+        self.assertNotIn(SESSION_KEY, self.client.session)
+        self.assertIn(reverse('django_u2f.views.verify_second_factor'), r['location'])
+
+        r = self.client.post(r['location'], {
+            'code': code,
+            'type': 'backup',
+        })
+        self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
+        self.assertTrue(r['location'].endswith('/next/'))
+        self.assertFalse(self.user.backup_codes.filter(code=code).exists())
+
+    def test_incorrect_code(self):
+        self.enable_backupcode()
+        r = self.login()
+        r = self.client.post(r['location'], {
+            'code': 'abc',
+            'type': 'backup',
+        })
+        self.assertNotIn(SESSION_KEY, self.client.session)
+        self.assertIn(BackupCodeForm.INVALID_ERROR_MESSAGE, r.content)
+
+    def test_add_backup_codes(self):
+        self.login()
+        r = self.client.post(reverse('django_u2f.views.backup_codes'))
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.user.backup_codes.count(), 10)
+
+    def test_list_backup_codes(self):
+        self.login()
+        self.user.backup_codes.create(code='foobar')
+        otheruser = User.objects.create_superuser(
+            username='test2',
+            email='test2@example.com',
+            password='asdfasdf',
+        )
+        otheruser.backup_codes.create(code='test2code')
+
+        r = self.client.get(reverse('u2f:backup-codes'))
+        self.assertIn('foobar', r.content)
+        self.assertNotIn('test2code', r.content)
+
+
+class TestTOTP(U2FTest):
+    def enable_totp(self):
+        key = os.urandom(20)
+        self.user.totp_devices.create(
+            key=key,
+        )
+        return key
+
+    def test_login(self):
+        key = self.enable_totp()
+        r = self.login()
+        self.assertNotIn(SESSION_KEY, self.client.session)
+        self.assertIn(reverse('django_u2f.views.verify_second_factor'), r['location'])
+
+        r = self.client.post(r['location'], {
+            'token': oath.totp(key, timezone.now()),
+            'type': 'totp',
+        })
+        self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
+        self.assertTrue(r['location'].endswith('/next/'))
+
+    def test_token_cant_be_used_twice(self):
+        key = self.enable_totp()
+        r = self.login()
+        token = oath.totp(key, timezone.now()),
+        r = self.client.post(r['location'], {
+            'token': token,
+            'type': 'totp',
+        })
+        self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
+        self.client.logout()
+        r = self.login()
+        r = self.client.post(r['location'], {
+            'token': token,
+            'type': 'totp',
+        })
+        self.assertIn(TOTPForm.INVALID_ERROR_MESSAGE, r.content)
+
+    def test_incorrect_code(self):
+        key = self.enable_totp()
+        r = self.login()
+        r = self.client.post(r['location'], {
+            'token': oath.totp(key, timezone.now() + datetime.timedelta(seconds=120)),
+            'type': 'totp',
+        })
+        self.assertNotIn(SESSION_KEY, self.client.session)
+        self.assertIn(TOTPForm.INVALID_ERROR_MESSAGE, r.content)
+
+    def test_add_device(self):
+        self.login()
+        url = reverse('django_u2f.views.add_totp')
+        r = self.client.get(url)
+        self.assertIn('svg', r.content)
+        base32_key = re.search('<tt>([A-Z0-9]+)</tt>', r.content).group(1)
+        key = b32decode(base32_key)
+
+        r = self.client.post(url, {
+            'base32_key': base32_key,
+            'token': oath.totp(key, timezone.now()),
+        })
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(self.user.totp_devices.filter(key=key).exists())
+
+    def test_add_device_incorrect_token(self):
+        self.login()
+        url = reverse('django_u2f.views.add_totp')
+        r = self.client.get(url)
+        base32_key = re.search('<tt>([A-Z0-9]+)</tt>', r.content).group(1)
+        key = b32decode(base32_key)
+
+        r = self.client.post(url, {
+            'base32_key': base32_key,
+            'token': oath.totp(key, timezone.now() + datetime.timedelta(seconds=120)),
+        })
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(TOTPForm.INVALID_ERROR_MESSAGE, r.content)
+
+    def test_delete_device(self):
+        self.login()
+        self.enable_totp()
+        r = self.client.post(reverse('django_u2f.views.totp_devices'), {
+            'device_id': self.user.totp_devices.get().pk,
+            'delete': '1',
+        })
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(self.user.totp_devices.exists())

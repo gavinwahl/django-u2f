@@ -43,18 +43,37 @@ class KeyResponseForm(SecondFactorForm):
             device.last_used_at = timezone.now()
             device.save()
             del self.request.session['u2f_authentication_challenges']
+            return True
         except Exception as e:
             self.add_error('__all__', str(e))
+        return False
 
 
 class BackupCodeForm(SecondFactorForm):
+    INVALID_ERROR_MESSAGE = "That is not a valid backup code."
+
     code = forms.CharField()
 
     def validate_second_factor(self):
         try:
             obj = self.user.backup_codes.get(code=self.cleaned_data['code'])
         except BackupCode.DoesNotExist:
-            self.add_error('code', 'That is not a valid backup code.')
+            self.add_error('code', self.INVALID_ERROR_MESSAGE)
             return False
         obj.delete()
         return True
+
+
+class TOTPForm(SecondFactorForm):
+    INVALID_ERROR_MESSAGE = "That token is invalid"
+
+    token = forms.CharField(min_length=6, max_length=6)
+
+    def validate_second_factor(self):
+        for device in self.user.totp_devices.all():
+            if device.validate_token(self.cleaned_data['token']):
+                device.last_used_at = timezone.now()
+                device.save()
+                return True
+        self.add_error('token', self.INVALID_ERROR_MESSAGE)
+        return False
