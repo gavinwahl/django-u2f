@@ -1,5 +1,4 @@
 import os
-import string
 from base64 import b32encode, b32decode
 from collections import OrderedDict
 from six import BytesIO
@@ -15,8 +14,6 @@ from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.utils.http import is_safe_url, urlencode
 from django.shortcuts import resolve_url, get_object_or_404
-from django.utils.crypto import get_random_string
-from django.db import transaction, IntegrityError
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.functional import cached_property
 
@@ -241,18 +238,9 @@ class BackupCodesView(ListView):
     def get_queryset(self):
         return self.request.user.backup_codes.all()
 
-    def create_backup_code(self):
-        while True:
-            try:
-                with transaction.atomic():
-                    code = get_random_string(length=6, allowed_chars=string.digits)
-                    return self.request.user.backup_codes.create(code=code)
-            except IntegrityError as e:
-                pass
-
     def post(self, request):
         for i in range(10):
-            self.create_backup_code()
+            self.request.user.backup_codes.create_backup_code()
         return HttpResponseRedirect(self.request.build_absolute_uri())
 
 

@@ -1,12 +1,15 @@
 from __future__ import division
 
 import datetime
+import string
 import hmac
 import six
 
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.db import transaction, IntegrityError
+from django.utils.crypto import get_random_string
 
 from .oath import totp, T
 
@@ -28,6 +31,20 @@ class U2FKey(models.Model):
         }
 
 
+class BackupCodeManager(models.Manager):
+    def create_backup_code(self, code=None):
+        if code is not None:
+            return self.create(code=code)
+
+        while True:
+            try:
+                with transaction.atomic():
+                    code = get_random_string(length=6, allowed_chars=string.digits)
+                    return self.create(code=code)
+            except IntegrityError as e:
+                pass
+
+
 class BackupCode(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='backup_codes')
     code = models.CharField(max_length=8)
@@ -36,6 +53,8 @@ class BackupCode(models.Model):
         unique_together = [
             ('user', 'code')
         ]
+
+    objects = BackupCodeManager()
 
 
 class TOTPDevice(models.Model):

@@ -4,12 +4,14 @@ import json
 import string
 import datetime
 from base64 import b32decode
+from six import StringIO
 
 from django.test import TestCase, Client
 from django.core.urlresolvers import reverse
 from django.contrib.auth import get_user_model, SESSION_KEY
 from django.utils.crypto import get_random_string
 from django.utils import timezone
+from django.core.management import call_command
 
 from django_u2f.forms import BackupCodeForm, TOTPForm
 from django_u2f import oath
@@ -271,6 +273,15 @@ class TestBackupCode(TwoFactorTest):
         r = self.client.get(reverse('u2f:backup-codes'))
         self.assertIn('foobar', r.content)
         self.assertNotIn('test2code', r.content)
+
+    def test_addbackupcode(self):
+        out = StringIO()
+        call_command('addbackupcode', self.user.get_username(), stdout=out)
+        code = out.getvalue().strip()
+        self.assertTrue(self.user.backup_codes.filter(code=code).exists())
+
+        call_command('addbackupcode', self.user.get_username(), code='foo', stdout=out)
+        self.assertTrue(self.user.backup_codes.filter(code='foo').exists())
 
 
 class TestTOTP(U2FTest):
