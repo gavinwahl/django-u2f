@@ -23,7 +23,7 @@ env:
 install:
   - pip install --upgrade pip wheel
   - pip install -q $DJANGO_PACKAGE 
-  - pip install --pre -e .
+  - pip install --pre -e .[u2f]
   - pip install -r ./testproj/requirements.txt
   - pip freeze
 script: ./testproj/manage.py test testproj

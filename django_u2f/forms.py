@@ -4,9 +4,8 @@ import django
 from django import forms
 from django.utils import timezone
 
-from u2flib_server import u2f_v2 as u2f
-
 from .models import BackupCode
+from .u2f_impl import u2f
 
 
 class SecondFactorForm(forms.Form):

@@ -5,6 +5,7 @@ import string
 import datetime
 from base64 import b32decode
 from six import StringIO
+import unittest
 
 from django.test import TestCase, Client
 from django.core.urlresolvers import reverse
@@ -16,6 +17,7 @@ from django.core.management import call_command
 from django_u2f.forms import BackupCodeForm, TOTPForm
 from django_u2f import oath
 from django_u2f.models import TOTPDevice
+from django_u2f.u2f_impl import U2F_ENABLED
 
 User = get_user_model()
 
@@ -36,6 +38,12 @@ class TwoFactorTest(TestCase):
             'password': 'asdfasdf',
             'next': '/next/'
         })
+
+    def enable_backupcode(self):
+        code = get_random_string(length=6, allowed_chars=string.digits)
+        self.user.backup_codes.create(code=code)
+        return code
+
 
 class U2FTest(TwoFactorTest):
     def enable_u2f(self):
@@ -80,6 +88,7 @@ class U2FTest(TwoFactorTest):
         }
 
 
+@unittest.skipIf(not U2F_ENABLED, "u2f not enabled")
 class TestU2F(U2FTest):
     def test_normal_login(self):
         r = self.login()
@@ -158,7 +167,7 @@ class TestU2F(U2FTest):
         self.assertEqual(r.status_code, 404)
 
 
-class TestAdminLogin(U2FTest):
+class TestAdminLogin(TwoFactorTest):
     def setUp(self):
         super(TestAdminLogin, self).setUp()
         self.admin_url = reverse('admin:index')
@@ -176,7 +185,7 @@ class TestAdminLogin(U2FTest):
         self.assertEqual(r.templates[0].name, 'admin/login.html')
 
     def test_login_with_u2f(self):
-        self.enable_u2f()
+        code = self.enable_backupcode()
         r = self.client.post(self.login_url, {
             'username': 'test',
             'password': 'asdfasdf',
@@ -187,23 +196,15 @@ class TestAdminLogin(U2FTest):
         verify_key_response = self.client.get(r['location'])
         self.assertIn('Django administration', verify_key_response.content)
 
-        device_response = self.set_challenge()
         r = self.client.post(r['location'], {
-            'response': json.dumps(device_response),
-            'type': 'u2f',
+            'code': code,
+            'type': 'backup',
         })
 
         self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
         self.assertTrue(r['location'].endswith(self.admin_url))
 
     def test_login_without_u2f(self):
-        r = self.client.get(self.admin_url)
-        if r.status_code == 200:
-            # django 1.6
-            self.assertEqual(r.context['next'], self.admin_url)
-        # else:
-            # django 1.7
-
         r = self.client.post(self.login_url, {
             'username': 'test',
             'password': 'asdfasdf',
@@ -215,11 +216,6 @@ class TestAdminLogin(U2FTest):
 
 
 class TestBackupCode(TwoFactorTest):
-    def enable_backupcode(self):
-        code = get_random_string(length=6, allowed_chars=string.digits)
-        self.user.backup_codes.create(code=code)
-        return code
-
     def test_validation_error(self):
         self.enable_backupcode()
         r = self.login()
