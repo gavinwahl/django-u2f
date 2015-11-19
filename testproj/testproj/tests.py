@@ -120,7 +120,7 @@ class TestU2F(U2FTest):
             'type': 'u2f',
         })
         self.assertNotIn(SESSION_KEY, self.client.session)
-        self.assertIn('Challenge signature verification failed!', r.content)
+        self.assertContains(r, 'Challenge signature verification failed!')
 
     def test_verify_when_not_logged_in(self):
         r = self.client.get(reverse('u2f:verify-second-factor'))
@@ -131,7 +131,7 @@ class TestU2F(U2FTest):
 
         url = reverse('u2f:add-u2f-key')
         r = self.client.get(url)
-        self.assertIn('"challenge"', r.content)
+        self.assertContains(r, '"challenge"')
 
         device_response = self.set_add_key()
         r = self.client.post(url, {
@@ -194,7 +194,7 @@ class TestAdminLogin(TwoFactorTest):
         self.assertIn(reverse('u2f:verify-second-factor'), r['location'])
 
         verify_key_response = self.client.get(r['location'])
-        self.assertIn('Django administration', verify_key_response.content)
+        self.assertContains(verify_key_response, 'Django administration')
 
         r = self.client.post(r['location'], {
             'code': code,
@@ -225,7 +225,7 @@ class TestBackupCode(TwoFactorTest):
         r = self.client.post(r['location'], {
             'type': 'backup',
         })
-        self.assertIn('This field is required.', r.content)
+        self.assertContains(r, 'This field is required.')
 
     def test_code_required_and_login(self):
         code = self.enable_backupcode()
@@ -249,7 +249,7 @@ class TestBackupCode(TwoFactorTest):
             'type': 'backup',
         })
         self.assertNotIn(SESSION_KEY, self.client.session)
-        self.assertIn(BackupCodeForm.INVALID_ERROR_MESSAGE, r.content)
+        self.assertContains(r, BackupCodeForm.INVALID_ERROR_MESSAGE)
 
     def test_add_backup_codes(self):
         self.login()
@@ -268,8 +268,8 @@ class TestBackupCode(TwoFactorTest):
         otheruser.backup_codes.create(code='test2code')
 
         r = self.client.get(reverse('u2f:backup-codes'))
-        self.assertIn('foobar', r.content)
-        self.assertNotIn('test2code', r.content)
+        self.assertContains(r, 'foobar')
+        self.assertNotContains(r, 'test2code')
 
     def test_addbackupcode(self):
         out = StringIO()
@@ -317,7 +317,7 @@ class TestTOTP(U2FTest):
             'token': token,
             'type': 'totp',
         })
-        self.assertIn(TOTPForm.INVALID_ERROR_MESSAGE, r.content)
+        self.assertContains(r, TOTPForm.INVALID_ERROR_MESSAGE)
 
     def test_incorrect_code(self):
         key = self.enable_totp()
@@ -327,14 +327,17 @@ class TestTOTP(U2FTest):
             'type': 'totp',
         })
         self.assertNotIn(SESSION_KEY, self.client.session)
-        self.assertIn(TOTPForm.INVALID_ERROR_MESSAGE, r.content)
+        self.assertContains(r, TOTPForm.INVALID_ERROR_MESSAGE)
+
+    def _extract_key(self, response):
+        return re.search('<tt>([A-Z0-9]+)</tt>', response.content.decode('utf-8')).group(1)
 
     def test_add_device(self):
         self.login()
         url = reverse('u2f:add-totp')
         r = self.client.get(url)
-        self.assertIn('svg', r.content)
-        base32_key = re.search('<tt>([A-Z0-9]+)</tt>', r.content).group(1)
+        self.assertContains(r, 'svg')
+        base32_key = self._extract_key(r)
         key = b32decode(base32_key)
 
         r = self.client.post(url, {
@@ -348,7 +351,7 @@ class TestTOTP(U2FTest):
         self.login()
         url = reverse('u2f:add-totp')
         r = self.client.get(url)
-        base32_key = re.search('<tt>([A-Z0-9]+)</tt>', r.content).group(1)
+        base32_key = self._extract_key(r)
         key = b32decode(base32_key)
 
         r = self.client.post(url, {
@@ -356,7 +359,7 @@ class TestTOTP(U2FTest):
             'token': oath.totp(key, timezone.now() + datetime.timedelta(seconds=120)),
         })
         self.assertEqual(r.status_code, 200)
-        self.assertIn(TOTPForm.INVALID_ERROR_MESSAGE, r.content)
+        self.assertContains(r, TOTPForm.INVALID_ERROR_MESSAGE)
 
     def test_delete_device(self):
         self.login()

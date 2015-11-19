@@ -17,13 +17,27 @@ cache:
 
 python:
   - 2.7
+  - 3.4
+  - 3.5
 env:
-  - DJANGO_PACKAGE="Django>=1.8,<1.9"
-  - DJANGO_PACKAGE="Django>=1.9rc1,<1.10"
+  - DJANGO_PACKAGE="Django>=1.8,<1.9" EXTRAS=[u2f]
+  - DJANGO_PACKAGE="Django>=1.9rc1,<1.10 EXTRAS=[u2f]
+  - DJANGO_PACKAGE="Django>=1.8,<1.9" EXTRAS=
+  - DJANGO_PACKAGE="Django>=1.9rc1,<1.10 EXTRAS=
+matrix:
+  exclude:
+    - python: 3.4
+      env: DJANGO_PACKAGE="Django>=1.8,<1.9" EXTRAS=[u2f]
+    - python: 3.5
+      env: DJANGO_PACKAGE="Django>=1.8,<1.9" EXTRAS=[u2f]
+    - python: 3.4
+      env: DJANGO_PACKAGE="Django>=1.9rc1,<1.10 EXTRAS=[u2f]
+    - python: 3.5
+      env: DJANGO_PACKAGE="Django>=1.9rc1,<1.10 EXTRAS=[u2f]
 install:
   - pip install --upgrade pip wheel
   - pip install -q $DJANGO_PACKAGE 
-  - pip install --pre -e .[u2f]
+  - pip install --pre -e .$EXTRAS
   - pip install -r ./testproj/requirements.txt
   - pip freeze
 script: ./testproj/manage.py test testproj
