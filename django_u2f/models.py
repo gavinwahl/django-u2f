@@ -70,22 +70,20 @@ class TOTPDevice(models.Model):
     def validate_token(self, token):
         step = datetime.timedelta(seconds=30)
         now = timezone.now()
+        # the number of time intervals on either side to check
         slop = 1
 
-        # not sure why django gives you a memory view instead of a bytes object
-        key = six.binary_type(self.key)
-
-        times_to_check = [now]
-        for i in range(1, slop + 1):
-            times_to_check.append(now - i * step)
-            times_to_check.append(now + i * step)
-
+        times_to_check = [now + i * step for i in range(-slop, slop+1)]
         # prevent using the same token twice
         if self.last_t is not None:
             times_to_check = [t for t in times_to_check if T(t) > self.last_t]
 
+        # not sure why django gives you a memory view instead of a bytes object
+        key = six.binary_type(self.key)
+
+        token = str(token)
         for t in times_to_check:
-            if hmac.compare_digest(six.text_type(totp(key, t)), token):
+            if hmac.compare_digest(totp(key, t), token):
                 self.last_t = T(t)
                 return True
         return False

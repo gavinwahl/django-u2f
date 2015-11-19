@@ -15,6 +15,7 @@ from django.core.management import call_command
 
 from django_u2f.forms import BackupCodeForm, TOTPForm
 from django_u2f import oath
+from django_u2f.models import TOTPDevice
 
 User = get_user_model()
 
@@ -370,3 +371,12 @@ class TestTOTP(U2FTest):
         })
         self.assertEqual(r.status_code, 302)
         self.assertFalse(self.user.totp_devices.exists())
+
+    def test_slop(self):
+        key = os.urandom(20)
+        device = TOTPDevice(key=key)
+        now = timezone.now()
+
+        self.assertTrue(device.validate_token(oath.totp(key, now - datetime.timedelta(seconds=30))))
+        self.assertTrue(device.validate_token(oath.totp(key, now)))
+        self.assertTrue(device.validate_token(oath.totp(key, now + datetime.timedelta(seconds=30))))
