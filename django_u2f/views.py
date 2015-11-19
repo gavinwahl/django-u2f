@@ -34,10 +34,7 @@ class U2FLoginView(FormView):
 
     @property
     def is_admin(self):
-        try:
-            return self.kwargs['current_app'] == 'admin'
-        except KeyError:
-            return False
+        return self.get_template_names() == 'admin/login.html'
 
     def requires_two_factor(self, user):
         return (user.u2f_keys.exists() or
@@ -45,10 +42,7 @@ class U2FLoginView(FormView):
                 user.totp_devices.exists())
 
     def get_template_names(self):
-        if self.is_admin:
-            return 'admin/login.html'
-        else:
-            return self.template_name
+        return self.kwargs.get('template_name', self.template_name)
 
     def form_valid(self, form):
         user = form.get_user()
@@ -59,17 +53,9 @@ class U2FLoginView(FormView):
             self.request.session['u2f_pre_verify_user_pk'] = user.pk
             self.request.session['u2f_pre_verify_user_backend'] = user.backend
 
-            verify_url = reverse(verify_second_factor)
+            verify_url = reverse('u2f:verify-second-factor')
             redirect_to = self.request.POST.get(auth.REDIRECT_FIELD_NAME,
                                                 self.request.GET.get(auth.REDIRECT_FIELD_NAME, ''))
-            try:
-                # acting as admin login view, handle weird django <= 1.6
-                # behavior where login view is used without redirecting
-                if self.is_admin:
-                    redirect_to = self.kwargs['extra_context'][auth.REDIRECT_FIELD_NAME]
-            except KeyError:
-                pass
-
             params = {}
             if is_safe_url(url=redirect_to, host=self.request.get_host()):
                 params[auth.REDIRECT_FIELD_NAME] = redirect_to
@@ -138,7 +124,7 @@ class AddKeyView(FormView):
             app_id=device['appId'],
         )
         messages.success(self.request, 'Key added.')
-        return HttpResponseRedirect(reverse(keys))
+        return HttpResponseRedirect(reverse('u2f:u2f-keys'))
 
 
 class VerifySecondFactorView(TemplateView):
@@ -165,7 +151,7 @@ class VerifySecondFactorView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         self.user = self.get_user()
         if self.user is None:
-            return HttpResponseRedirect(reverse(login))
+            return HttpResponseRedirect(reverse('u2f:login'))
         return super(VerifySecondFactorView, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -246,7 +232,7 @@ class KeyManagementView(ListView):
             messages.success(request, 'Key removed.')
         else:
             messages.success(request, 'Key removed. Two-factor auth disabled.')
-        return HttpResponseRedirect(reverse(keys))
+        return HttpResponseRedirect(reverse('u2f:u2f-keys'))
 
 
 class BackupCodesView(ListView):
@@ -328,7 +314,7 @@ class AddTOTPDeviceView(FormView):
         if device.validate_token(form.cleaned_data['token']):
             device.save()
             messages.success(self.request, 'Device added.')
-            return HttpResponseRedirect(reverse(two_factor_settings))
+            return HttpResponseRedirect(reverse('u2f:two-factor-settings'))
         else:
             assert not device.pk
             form.add_error('token', TOTPForm.INVALID_ERROR_MESSAGE)
@@ -351,7 +337,7 @@ class TOTPDeviceManagementView(ListView):
         device = get_object_or_404(self.get_queryset(), pk=self.request.POST['device_id'])
         device.delete()
         messages.success(request, 'Device removed.')
-        return HttpResponseRedirect(reverse(totp_devices))
+        return HttpResponseRedirect(reverse('u2f:totp-devices'))
 
 
 add_key = login_required(AddKeyView.as_view())

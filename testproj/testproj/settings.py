@@ -85,8 +85,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-LOGIN_REDIRECT_URL = 'django_u2f.views.keys'
-LOGIN_URL = 'django_u2f.views.login'
+LOGIN_REDIRECT_URL = 'u2f:two-factor-settings'
+LOGIN_URL = 'u2f:login'
 
 TEMPLATE_DIRS = (
     os.path.join(BASE_DIR, 'templates'),

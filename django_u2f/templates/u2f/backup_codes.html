@@ -3,7 +3,7 @@
 {% block content %}
 {{ block.super }}
 
-<a href="{% url 'django_u2f.views.two_factor_settings' %}">Back to settings</a>
+<a href="{% url 'u2f:two-factor-settings' %}">Back to settings</a>
 
 <ul>
   {% for code in object_list %}
