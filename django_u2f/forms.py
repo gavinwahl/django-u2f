@@ -1,5 +1,6 @@
 import json
 
+import django
 from django import forms
 from django.utils import timezone
 
@@ -54,14 +55,30 @@ class BackupCodeForm(SecondFactorForm):
 
     code = forms.CharField()
 
-    def validate_second_factor(self):
+    def _validate_second_factor_legacy(self):
+        # This implementation has a race condition where the same code could be
+        # used twice, but Django < 1.9 doesn't return the count of deleted
+        # objects.
         try:
             obj = self.user.backup_codes.get(code=self.cleaned_data['code'])
         except BackupCode.DoesNotExist:
-            self.add_error('code', self.INVALID_ERROR_MESSAGE)
-            return False
+             self.add_error('code', self.INVALID_ERROR_MESSAGE)
+             return False
         obj.delete()
         return True
+
+    def validate_second_factor(self):
+        if django.VERSION < (1, 9):
+            return self._validate_second_factor_legacy()
+
+        count, _ = self.user.backup_codes.filter(code=self.cleaned_data['code']).delete()
+        if count == 0:
+            self.add_error('code', self.INVALID_ERROR_MESSAGE)
+            return False
+        elif count == 1:
+            return True
+        else:
+            assert False, "Impossible, there should never be more than one object with the same code."
 
 
 class TOTPForm(SecondFactorForm):
