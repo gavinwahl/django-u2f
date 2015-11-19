@@ -62,5 +62,7 @@ def totp(key, t, digits=6, step=30):
     '94287082'
     >>> totp(key, datetime.datetime.fromtimestamp(1111111109), digits=8)
     '07081804'
+    >>> totp(key, datetime.datetime.fromtimestamp(20000000000), digits=8)
+    '65353130'
     """
     return hotp(key, T(t, step), digits)
