@@ -1,21 +1,24 @@
 {% extends "u2f/base.html" %}
 {% load argonauts %}
+{% load i18n %}
 
 {% block content %}
 {{ block.super }}
 
 <p>
-  Please verify one of the authentication methods below.
+  {% trans 'Please verify one of the authentication methods below.' %}
 </p>
 
 {% if user.u2f_keys.exists %}
 <div class="method u2f">
   <p>
-  Insert your Security Key
+  {% trans 'Insert your Security Key' %}
   </p>
   <p>
+  {% blocktrans %}
   If your Security Key has a button, tap it.<br>
   If it doesn't, remove and re-insert it.
+  {% endblocktrans %}
   </p>
 
   <form method="post" id="u2f-form">
@@ -39,24 +42,24 @@
 
 {% if user.totp_devices.exists %}
 <div class="method totp">
-  <p>Enter an Authenticator (TOTP) Token:</p>
+  <p>{% trans 'Enter an Authenticator (TOTP) Token:' %}</p>
 
   <form method="post">
     {% csrf_token %}
     {{ forms.totp.as_p }}
-    <button value="totp" name="type">Submit</button>
+    <button value="totp" name="type">{% trans 'Submit' %}</button>
   </form>
 </div>
 {% endif %}
 
 {% if user.backup_codes.exists %}
 <div class="method backup">
-  <p>Use a backup code:</p>
+  <p>{% trans 'Use a backup code:' %}</p>
 
   <form method="POST">
     {% csrf_token %}
     {{ forms.backup.as_p }}
-    <button value="backup" name="type">Submit</button>
+    <button value="backup" name="type">{% trans 'Submit' %}</button>
   </form>
 </div>
 {% endif %}

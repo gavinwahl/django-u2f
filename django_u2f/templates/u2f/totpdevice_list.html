@@ -1,4 +1,5 @@
 {% extends "u2f/base.html" %}
+{% load i18n %}
 
 {% block content %}
 {{ block.super }}
@@ -6,13 +7,14 @@
 <table>
     <thead>
         <tr>
-            <th>Added on
-            <th>Last used on
+            <th>{% trans 'Added on' %}
+            <th>{% trans 'Last used on' %}
     <tbody>
         {% for device in object_list %}
         <tr>
             <td>{{ device.created_at }}
-            <td>{{ device.last_used_at|default:"Never" }}
+            {% trans 'Never' as never %}
+            <td>{{ device.last_used_at|default:never}}
             <td><form method="post">{% csrf_token %}
                     <input name="device_id" type="hidden" value="{{ device.pk }}">
                     <input type="submit" name="delete" value="X">
@@ -20,6 +22,6 @@
         {% endfor %}
 </table>
 
-<a href="{% url 'u2f:add-totp' %}">Add another TOTP (Authenticator) Device</a>
+<a href="{% url 'u2f:add-totp' %}">{% trans 'Add another TOTP (Authenticator) Device' %}</a>
 
 {% endblock %}

@@ -1,21 +1,22 @@
 {% extends "u2f/base.html" %}
+{% load i18n %}
 
 {% block content %}
 {{ block.super }}
 
-<a href="{% url 'u2f:two-factor-settings' %}">Back to settings</a>
+<a href="{% url 'u2f:two-factor-settings' %}">{% trans 'Back to settings' %}</a>
 
 <ul>
   {% for code in object_list %}
   <li>{{ code.code }}</li>
   {% empty %}
-  <li>You do not have any backup codes! Please create some!</li>
+  <li>{% trans 'You do not have any backup codes! Please create some!' %}</li>
   {% endfor %}
 </ul>
 
 <form method="POST">
   {% csrf_token %}
-  <input type="submit" value="Create some backup codes">
+  <input type="submit" value="{% trans 'Create some backup codes' %}">
 </form>
 
 {% endblock %}

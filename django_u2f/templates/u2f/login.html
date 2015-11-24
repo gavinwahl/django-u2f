@@ -1,4 +1,5 @@
 {% extends "u2f/base.html" %}
+{% load i18n %}
 
 {% block content %}
 
@@ -7,7 +8,7 @@
 <table>
 {{ form.as_p }}
 </table>
-<input type="submit" value="login" />
+<input type="submit" value="{% trans 'Login' %}" />
 </form>
 
 {% endblock %}

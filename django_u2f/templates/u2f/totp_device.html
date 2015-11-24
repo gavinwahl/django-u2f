@@ -1,26 +1,27 @@
 {% extends "u2f/base.html" %}
 {% load argonauts %}
+{% load i18n %}
 
 {% block content %}
 {{ block.super }}
 
-<p>Scan this in your authenticator app:</p>
+<p>{% trans 'Scan this in your authenticator app:' %}</p>
 
 {{ qr_svg|safe }}
 
 <p>
-  Or, if you can't scan a QR Code, enter this key as a time-based account: <tt>{{ base32_key }}</tt>
+  {% trans "Or, if you can't scan a QR Code, enter this key as a time-based account:" %} <tt>{{ base32_key }}</tt>
 </p>
 
 <p>
-  Then, enter the token it gives you.
+  {% trans 'Then, enter the token it gives you.' %}
 </p>
 
 <form method="POST">
   {% csrf_token %}
   {{ form.as_p }}
   <input type="hidden" name="base32_key" value="{{ base32_key }}">
-  <button value="backup" name="type">Submit</button>
+  <button value="backup" name="type">{% trans 'Submit' %}</button>
 </form>
 
 {% endblock %}

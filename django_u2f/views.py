@@ -16,6 +16,7 @@ from django.utils.http import is_safe_url, urlencode
 from django.shortcuts import resolve_url, get_object_or_404
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.functional import cached_property
+from django.utils.translation import ugettext as _
 
 import qrcode
 from qrcode.image.svg import SvgPathImage
@@ -127,7 +128,7 @@ class AddKeyView(FormView):
             key_handle=device['keyHandle'],
             app_id=device['appId'],
         )
-        messages.success(self.request, 'Key added.')
+        messages.success(self.request, _("Key added."))
         return HttpResponseRedirect(reverse('u2f:u2f-keys'))
 
 
@@ -238,9 +239,9 @@ class KeyManagementView(ListView):
         key = get_object_or_404(self.get_queryset(), pk=self.request.POST['key_id'])
         key.delete()
         if self.get_queryset().exists():
-            messages.success(request, 'Key removed.')
+            messages.success(request, _("Key removed."))
         else:
-            messages.success(request, 'Key removed. Two-factor auth disabled.')
+            messages.success(request, _("Key removed. Two-factor auth disabled."))
         return HttpResponseRedirect(reverse('u2f:u2f-keys'))
 
 
@@ -313,7 +314,7 @@ class AddTOTPDeviceView(FormView):
         )
         if device.validate_token(form.cleaned_data['token']):
             device.save()
-            messages.success(self.request, 'Device added.')
+            messages.success(self.request, _("Device added."))
             return HttpResponseRedirect(reverse('u2f:two-factor-settings'))
         else:
             assert not device.pk
@@ -336,7 +337,7 @@ class TOTPDeviceManagementView(ListView):
         assert 'delete' in self.request.POST
         device = get_object_or_404(self.get_queryset(), pk=self.request.POST['device_id'])
         device.delete()
-        messages.success(request, 'Device removed.')
+        messages.success(request, _("Device removed."))
         return HttpResponseRedirect(reverse('u2f:totp-devices'))
 
 

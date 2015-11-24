@@ -3,6 +3,7 @@ import json
 import django
 from django import forms
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 from .models import BackupCode
 from .u2f_impl import u2f
@@ -50,9 +51,9 @@ class KeyResponseForm(SecondFactorForm):
 
 
 class BackupCodeForm(SecondFactorForm):
-    INVALID_ERROR_MESSAGE = "That is not a valid backup code."
+    INVALID_ERROR_MESSAGE = _("That is not a valid backup code.")
 
-    code = forms.CharField()
+    code = forms.CharField(label=_("Code"))
 
     def _validate_second_factor_legacy(self):
         # This implementation has a race condition where the same code could be
@@ -81,9 +82,9 @@ class BackupCodeForm(SecondFactorForm):
 
 
 class TOTPForm(SecondFactorForm):
-    INVALID_ERROR_MESSAGE = "That token is invalid"
+    INVALID_ERROR_MESSAGE = _("That token is invalid.")
 
-    token = forms.CharField(min_length=6, max_length=6)
+    token = forms.CharField(min_length=6, max_length=6, label=_("Token"))
 
     def validate_second_factor(self):
         for device in self.user.totp_devices.all():
