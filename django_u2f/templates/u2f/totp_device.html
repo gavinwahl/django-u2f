@@ -18,7 +18,7 @@
 
 <form method="POST">
   {% csrf_token %}
-  {{ form.as_ul }}
+  {{ form.as_p }}
   <input type="hidden" name="base32_key" value="{{ base32_key }}">
   <button value="backup" name="type">Submit</button>
 </form>

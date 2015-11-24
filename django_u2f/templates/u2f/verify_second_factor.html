@@ -20,7 +20,7 @@
 
   <form method="post" id="u2f-form">
       {% csrf_token %}
-      {{ forms.u2f.as_ul }}
+      {{ forms.u2f.as_p }}
       <input type="hidden" name="type" value="u2f">
   </form>
 
@@ -43,7 +43,7 @@
 
   <form method="post">
     {% csrf_token %}
-    {{ forms.totp.as_ul }}
+    {{ forms.totp.as_p }}
     <button value="totp" name="type">Submit</button>
   </form>
 </div>
@@ -55,7 +55,7 @@
 
   <form method="POST">
     {% csrf_token %}
-    {{ forms.backup.as_ul }}
+    {{ forms.backup.as_p }}
     <button value="backup" name="type">Submit</button>
   </form>
 </div>
