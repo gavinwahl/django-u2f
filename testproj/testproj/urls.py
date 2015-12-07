@@ -3,7 +3,7 @@ from django.contrib import admin
 
 admin.autodiscover()
 
-urlpatterns = patterns('',
-    url(r'^u2f/', include('django_u2f.urls')),
+urlpatterns = [
+    url(r'^u2f/', include('django_u2f.urls', 'u2f')),
     url(r'^admin/', include(admin.site.urls)),
-)
+]

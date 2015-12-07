@@ -1,13 +1,14 @@
 {% extends "u2f/base.html" %}
+{% load i18n %}
 
 {% block content %}
 
 <form method="post">
 {% csrf_token %}
 <table>
-{{ form.as_table }}
+{{ form.as_p }}
 </table>
-<input type="submit" value="login" />
+<input type="submit" value="{% trans 'Login' %}" />
 </form>
 
 {% endblock %}

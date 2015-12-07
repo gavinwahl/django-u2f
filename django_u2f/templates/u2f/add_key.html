@@ -1,9 +1,11 @@
 {% extends "u2f/base.html" %}
 {% load argonauts %}
+{% load i18n %}
 
 {% block content %}
 {{ block.super }}
-<p>To add a security key to your account, insert (and tap) it.</p>
+{% if U2F_ENABLED %}
+<p>{% trans 'To add a security key to your account, insert (and tap) it.' %}</p>
 
 <p id="u2f-status"></p>
 <form method="post" id="u2f-form">
@@ -22,4 +24,7 @@
         }
     })
 </script>
+{% else %}
+  <p>{% trans 'Sorry, you are not able to add a security key right now (U2F support is disabled).' %}<p>
+{% endif %}
 {% endblock %}

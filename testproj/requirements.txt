@@ -2,3 +2,7 @@ django_extensions
 pyOpenSSL
 werkzeug
 django-debug-toolbar
+# as a dependency of django_extensions. Django 1.9 loads all tag libraries, and
+# 'django_extensions.templatetags.highlighting': says :Please install 'pygments'
+# library to use highlighting.
+pygments

@@ -10,18 +10,18 @@
             <th>{% trans 'Added on' %}
             <th>{% trans 'Last used on' %}
     <tbody>
-        {% for key in object_list %}
+        {% for device in object_list %}
         <tr>
-            <td>{{ key.created_at }}
+            <td>{{ device.created_at }}
             {% trans 'Never' as never %}
-            <td>{{ key.last_used_at|default:never }}
+            <td>{{ device.last_used_at|default:never}}
             <td><form method="post">{% csrf_token %}
-                    <input name="key_id" type="hidden" value="{{ key.pk }}">
+                    <input name="device_id" type="hidden" value="{{ device.pk }}">
                     <input type="submit" name="delete" value="X">
                 </form>
         {% endfor %}
 </table>
 
-<a href="{% url 'u2f:add-u2f-key' %}">{% trans 'Add another key' %}</a>
+<a href="{% url 'u2f:add-totp' %}">{% trans 'Add another TOTP (Authenticator) Device' %}</a>
 
 {% endblock %}
