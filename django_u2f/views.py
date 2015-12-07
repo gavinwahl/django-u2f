@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import auth, messages
 from django.conf import settings
 from django.http import HttpResponseRedirect
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, reverse_lazy
 from django.utils.http import is_safe_url, urlencode
 from django.shortcuts import resolve_url, get_object_or_404
 from django.contrib.sites.shortcuts import get_current_site
@@ -78,6 +78,7 @@ class AdminU2FLoginView(U2FLoginView):
 class AddKeyView(FormView):
     template_name = 'u2f/add_key.html'
     form_class = KeyResponseForm
+    success_url = reverse_lazy('u2f:u2f-keys')
 
     def dispatch(self, request, *args, **kwargs):
         if U2F_ENABLED:
@@ -129,7 +130,7 @@ class AddKeyView(FormView):
             app_id=device['appId'],
         )
         messages.success(self.request, _("Key added."))
-        return HttpResponseRedirect(reverse('u2f:u2f-keys'))
+        return super().form_valid(form)
 
 
 class VerifySecondFactorView(TemplateView):
@@ -260,6 +261,7 @@ class BackupCodesView(ListView):
 class AddTOTPDeviceView(FormView):
     form_class = TOTPForm
     template_name = 'u2f/totp_device.html'
+    success_url = reverse_lazy('u2f:two-factor-settings')
 
     def gen_key(self):
         return os.urandom(20)
@@ -315,7 +317,7 @@ class AddTOTPDeviceView(FormView):
         if device.validate_token(form.cleaned_data['token']):
             device.save()
             messages.success(self.request, _("Device added."))
-            return HttpResponseRedirect(reverse('u2f:two-factor-settings'))
+            return super().form_valid(form)
         else:
             assert not device.pk
             form.add_error('token', TOTPForm.INVALID_ERROR_MESSAGE)
