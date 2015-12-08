@@ -1,0 +1,4 @@
+include LICENSE
+include *.rst
+recursive-include django_u2f/static *
+recursive-include django_u2f/templates *
