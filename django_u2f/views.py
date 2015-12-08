@@ -130,7 +130,7 @@ class AddKeyView(FormView):
             app_id=device['appId'],
         )
         messages.success(self.request, _("Key added."))
-        return super(self, AddKeyView).form_valid(form)
+        return super(AddKeyView, self).form_valid(form)
 
 
 class VerifySecondFactorView(TemplateView):
@@ -317,7 +317,7 @@ class AddTOTPDeviceView(FormView):
         if device.validate_token(form.cleaned_data['token']):
             device.save()
             messages.success(self.request, _("Device added."))
-            return super(self, AddTOTPDeviceView).form_valid(form)
+            return super(AddTOTPDeviceView, self).form_valid(form)
         else:
             assert not device.pk
             form.add_error('token', TOTPForm.INVALID_ERROR_MESSAGE)
