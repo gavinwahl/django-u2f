@@ -208,10 +208,10 @@ class VerifySecondFactorView(TemplateView):
         if not form.validate_second_factor():
             return self.form_invalid(forms)
 
-        auth.login(self.request, self.user)
-
         del self.request.session['u2f_pre_verify_user_pk']
         del self.request.session['u2f_pre_verify_user_backend']
+
+        auth.login(self.request, self.user)
 
         redirect_to = self.request.POST.get(auth.REDIRECT_FIELD_NAME,
                                             self.request.GET.get(auth.REDIRECT_FIELD_NAME, ''))

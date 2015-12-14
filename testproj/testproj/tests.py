@@ -280,6 +280,31 @@ class TestBackupCode(TwoFactorTest):
         call_command('addbackupcode', self.user.get_username(), code='foo', stdout=out)
         self.assertTrue(self.user.backup_codes.filter(code='foo').exists())
 
+    def test_login_while_already_logged_in(self):
+        User.objects.create_superuser(
+            username='test2',
+            email='test2@example.com',
+            password='asdfasdf',
+        )
+        r = self.client.post(self.login_url, {
+            'username': 'test2',
+            'password': 'asdfasdf',
+            'next': '/next/'
+        })
+        assert r.status_code == 302
+
+        code = self.enable_backupcode()
+        r = self.login()
+        self.assertIn(reverse('u2f:verify-second-factor'), r['location'])
+
+        r = self.client.post(r['location'], {
+            'code': code,
+            'type': 'backup',
+        })
+        self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
+        self.assertTrue(r['location'].endswith('/next/'))
+        self.assertFalse(self.user.backup_codes.filter(code=code).exists())
+
 
 class TestTOTP(U2FTest):
     def enable_totp(self):
