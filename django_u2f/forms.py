@@ -53,7 +53,7 @@ class KeyResponseForm(SecondFactorForm):
 class BackupCodeForm(SecondFactorForm):
     INVALID_ERROR_MESSAGE = _("That is not a valid backup code.")
 
-    code = forms.CharField(label=_("Code"))
+    code = forms.CharField(label=_("Code"), widget=forms.TextInput(attrs={'autocomplete': 'off'}))
 
     def _validate_second_factor_legacy(self):
         # This implementation has a race condition where the same code could be
