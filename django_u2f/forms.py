@@ -84,7 +84,12 @@ class BackupCodeForm(SecondFactorForm):
 class TOTPForm(SecondFactorForm):
     INVALID_ERROR_MESSAGE = _("That token is invalid.")
 
-    token = forms.CharField(min_length=6, max_length=6, label=_("Token"))
+    token = forms.CharField(
+        min_length=6,
+        max_length=6,
+        label=_("Token"),
+        widget=forms.TextInput(attrs={'autocomplete': 'off'})
+    )
 
     def validate_second_factor(self):
         for device in self.user.totp_devices.all():
