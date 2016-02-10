@@ -2,6 +2,7 @@ import os
 from base64 import b32encode, b32decode
 from collections import OrderedDict
 from six import BytesIO
+from six.moves.urllib.parse import quote
 
 from django.views.generic import FormView, ListView, TemplateView
 from django.contrib.auth.forms import AuthenticationForm
@@ -277,8 +278,8 @@ class AddTOTPDeviceView(FormView):
         ])
 
         return 'otpauth://totp/{issuer}:{username}?{params}'.format(
-            issuer=issuer,
-            username=self.request.user.get_username(),
+            issuer=quote(issuer),
+            username=quote(self.request.user.get_username()),
             params=urlencode(params),
         )
 
