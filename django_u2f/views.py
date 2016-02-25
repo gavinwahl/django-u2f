@@ -352,6 +352,3 @@ two_factor_settings = login_required(TwoFactorSettingsView.as_view())
 backup_codes = login_required(BackupCodesView.as_view())
 add_totp = login_required(AddTOTPDeviceView.as_view())
 totp_devices = login_required(TOTPDeviceManagementView.as_view())
-
-original_auth_login_view = auth_views.login
-auth_views.login = U2FLoginView.as_view()
