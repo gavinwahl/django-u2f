@@ -17,7 +17,6 @@ from django.core.management import call_command
 from django_u2f.forms import BackupCodeForm, TOTPForm
 from django_u2f import oath
 from django_u2f.models import TOTPDevice
-from django_u2f.u2f_impl import U2F_ENABLED
 
 User = get_user_model()
 
@@ -88,7 +87,6 @@ class U2FTest(TwoFactorTest):
         }
 
 
-@unittest.skipIf(not U2F_ENABLED, "u2f not enabled")
 class TestU2F(U2FTest):
     def test_normal_login(self):
         r = self.login()
@@ -120,7 +118,7 @@ class TestU2F(U2FTest):
             'type': 'u2f',
         })
         self.assertNotIn(SESSION_KEY, self.client.session)
-        self.assertContains(r, 'Challenge signature verification failed!')
+        self.assertContains(r, 'U2F validation failed')
 
     def test_verify_when_not_logged_in(self):
         r = self.client.get(reverse('u2f:verify-second-factor'))

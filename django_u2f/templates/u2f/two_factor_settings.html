@@ -4,9 +4,7 @@
 {% block content %}
 {{ block.super }}
 
-{% if U2F_ENABLED %}
 <a href="{% url 'u2f:u2f-keys' %}">{% trans 'Manage U2F keys' %}</a>
-{% endif %}
 <a href="{% url 'u2f:backup-codes' %}">{% trans 'Manage backup codes' %}</a>
 <a href="{% url 'u2f:totp-devices' %}">{% trans 'Manage TOTP (Authenticator) devices' %}</a>
 

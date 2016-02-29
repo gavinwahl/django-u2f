@@ -4,7 +4,6 @@
 
 {% block content %}
 {{ block.super }}
-{% if U2F_ENABLED %}
 <p>{% trans 'To add a security key to your account, insert (and tap) it.' %}</p>
 
 <p id="u2f-status"></p>
@@ -24,7 +23,4 @@
         }
     })
 </script>
-{% else %}
-  <p>{% trans 'Sorry, you are not able to add a security key right now (U2F support is disabled).' %}<p>
-{% endif %}
 {% endblock %}

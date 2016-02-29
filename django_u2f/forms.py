@@ -5,8 +5,10 @@ from django import forms
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from cryptography.exceptions import InvalidSignature
+from u2flib_server import u2f_v2 as u2f
+
 from .models import BackupCode
-from .u2f_impl import u2f
 
 
 class SecondFactorForm(forms.Form):
@@ -45,8 +47,8 @@ class KeyResponseForm(SecondFactorForm):
             device.save()
             del self.request.session['u2f_authentication_challenges']
             return True
-        except Exception as e:
-            self.add_error('__all__', str(e))
+        except InvalidSignature:
+            self.add_error('__all__', 'U2F validation failed -- bad signature.')
         return False
 
 

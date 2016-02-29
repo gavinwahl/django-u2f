@@ -21,8 +21,8 @@ from django.utils.translation import ugettext as _
 
 import qrcode
 from qrcode.image.svg import SvgPathImage
+from u2flib_server import u2f_v2 as u2f
 
-from .u2f_impl import u2f, U2F_ENABLED
 from .forms import KeyResponseForm, BackupCodeForm, TOTPForm
 from .models import TOTPDevice
 
@@ -82,10 +82,7 @@ class AddKeyView(FormView):
     success_url = reverse_lazy('u2f:u2f-keys')
 
     def dispatch(self, request, *args, **kwargs):
-        if U2F_ENABLED:
-            return super(AddKeyView, self).dispatch(request, *args, **kwargs)
-        else:
-            return self.render_to_response({'U2F_ENABLED': False})
+        return super(AddKeyView, self).dispatch(request, *args, **kwargs)
 
     def get_origin(self):
         return '{scheme}://{host}'.format(
@@ -106,7 +103,6 @@ class AddKeyView(FormView):
         kwargs = super(AddKeyView, self).get_context_data(**kwargs)
         challenge = u2f.start_register(self.get_origin())
         self.request.session['u2f_registration_challenge'] = challenge
-        kwargs['U2F_ENABLED'] = 'U2F_ENABLED'
         kwargs['challenge'] = challenge
 
         # Create a SignRequest for each key that has already been added to the
@@ -223,11 +219,6 @@ class VerifySecondFactorView(TemplateView):
 
 class TwoFactorSettingsView(TemplateView):
     template_name = 'u2f/two_factor_settings.html'
-
-    def get_context_data(self, **kwargs):
-        kwargs = super(TwoFactorSettingsView, self).get_context_data(**kwargs)
-        kwargs['U2F_ENABLED'] = U2F_ENABLED
-        return kwargs
 
 
 class KeyManagementView(ListView):
