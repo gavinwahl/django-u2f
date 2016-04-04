@@ -137,7 +137,7 @@ class AddKeyView(FormView):
         if 'next' in self.request.GET and is_safe_url(self.request.GET['next']):
             return self.request.GET['next']
         else:
-            return super().get_success_url()
+            return super(AddKeyView, self).get_success_url()
 
 
 class VerifySecondFactorView(TemplateView):
@@ -339,7 +339,7 @@ class AddTOTPDeviceView(FormView):
         if 'next' in self.request.GET and is_safe_url(self.request.GET['next']):
             return self.request.GET['next']
         else:
-            return super().get_success_url()
+            return super(AddTOTPDeviceView, self).get_success_url()
 
 
 class TOTPDeviceManagementView(ListView):
