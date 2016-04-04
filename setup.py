@@ -20,16 +20,12 @@ setup(
     include_package_data=True,
 
     install_requires=[
+        'python-u2flib-server>=4.0.0',
         'django-argonauts',
         'django>=1.8',
         'qrcode',
         'six',
     ],
-    # u2f support is an extra for now because m2crypt doesn't support python 3.
-    # This allows using the rest of the authentication methods without u2f.
-    extras_require={
-        'u2f': ['python-u2flib-server'],
-    },
     author='Gavin Wahl',
     author_email='gavinwahl@gmail.com',
     license='BSD',
