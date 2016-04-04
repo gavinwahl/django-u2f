@@ -133,6 +133,12 @@ class AddKeyView(FormView):
         messages.success(self.request, _("Key added."))
         return super(AddKeyView, self).form_valid(form)
 
+    def get_success_url(self):
+        if 'next' in self.request.GET and is_safe_url(self.request.GET['next']):
+            return self.request.GET['next']
+        else:
+            return super().get_success_url()
+
 
 class VerifySecondFactorView(TemplateView):
     template_name = 'u2f/verify_second_factor.html'
@@ -328,6 +334,12 @@ class AddTOTPDeviceView(FormView):
         # Should this go in Django's FormView?!
         # <https://code.djangoproject.com/ticket/25548>
         return self.render_to_response(self.get_context_data(form=form))
+
+    def get_success_url(self):
+        if 'next' in self.request.GET and is_safe_url(self.request.GET['next']):
+            return self.request.GET['next']
+        else:
+            return super().get_success_url()
 
 
 class TOTPDeviceManagementView(ListView):
