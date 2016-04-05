@@ -20,7 +20,7 @@ setup(
     include_package_data=True,
 
     install_requires=[
-        'python-u2flib-server>=4.0.0',
+        'python-u2flib-server>=4.0.1',
         'django-argonauts',
         'django>=1.8',
         'qrcode',
