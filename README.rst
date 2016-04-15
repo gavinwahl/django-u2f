@@ -18,6 +18,10 @@ fixed before relying on it.
 Installation
 ============
 
+::
+
+    $ pip install django-u2f
+
 Add ``django_u2f`` to ``INSTALLED_APPS`` and include
 ``django_u2f.urls`` somewhere in your url patterns. Set ``LOGIN_URL
 = 'u2f:login'``. Make sure that Django's built in login
