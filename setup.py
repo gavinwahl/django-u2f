@@ -12,6 +12,7 @@ def read(fname, encoding='utf-8'):
 
 setup(
     name='django-u2f',
+    version='0.1.0',
     description="FIDO U2F security token support for Django",
     long_description=read('README.rst'),
     url='https://github.com/gavinwahl/django-u2f',
@@ -34,9 +35,9 @@ setup(
         'Framework :: Django',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 2 :: Only',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Topic :: Security',
         'Topic :: Security :: Cryptography',
     ],
