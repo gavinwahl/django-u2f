@@ -22,8 +22,10 @@ python:
 env:
   - DJANGO_PACKAGE="Django>=1.8,<1.9" EXTRAS=[u2f]
   - DJANGO_PACKAGE="Django>=1.9rc1,<1.10 EXTRAS=[u2f]
+  - DJANGO_PACKAGE="Django>=1.10,<1.11" EXTRAS=[u2f]
   - DJANGO_PACKAGE="Django>=1.8,<1.9" EXTRAS=
   - DJANGO_PACKAGE="Django>=1.9rc1,<1.10 EXTRAS=
+  - DJANGO_PACKAGE="Django>=1.10,<1.11 EXTRAS=
 matrix:
   exclude:
     - python: 3.4
