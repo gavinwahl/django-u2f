@@ -9,7 +9,7 @@
   {% trans 'Please verify one of the authentication methods below.' %}
 </p>
 
-{% if user.u2f_keys.exists %}
+{% if forms.u2f %}
 <div class="method u2f">
   <p>
   {% trans 'Insert your Security Key' %}
@@ -28,8 +28,8 @@
   </form>
 
   <script>
-      var challenges = {{ forms.u2f.challenges|json }};
-      u2f.sign(challenges, function(resp) {
+      var request = {{ forms.u2f.sign_request|json }};
+      u2f.sign(request.appId, request.challenge, request.registeredKeys, function(resp) {
           var form = document.getElementById('u2f-form');
           form.response.value = JSON.stringify(resp);
           if ( ! handleU2FError(resp) ) {
@@ -40,7 +40,7 @@
 </div>
 {% endif %}
 
-{% if user.totp_devices.exists %}
+{% if forms.totp %}
 <div class="method totp">
   <p>{% trans 'Enter an Authenticator (TOTP) Token:' %}</p>
 
@@ -52,7 +52,7 @@
 </div>
 {% endif %}
 
-{% if user.backup_codes.exists %}
+{% if forms.backup %}
 <div class="method backup">
   <p>{% trans 'Use a backup code:' %}</p>
 

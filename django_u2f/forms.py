@@ -5,8 +5,7 @@ from django import forms
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from cryptography.exceptions import InvalidSignature
-from u2flib_server import u2f_v2 as u2f
+from u2flib_server import u2f
 
 from .models import BackupCode
 
@@ -15,6 +14,7 @@ class SecondFactorForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user')
         self.request = kwargs.pop('request')
+        self.appId = kwargs.pop('appId')
         return super(SecondFactorForm, self).__init__(*args, **kwargs)
 
 
@@ -24,32 +24,30 @@ class KeyResponseForm(SecondFactorForm):
     def __init__(self, *args, **kwargs):
         super(KeyResponseForm, self).__init__(*args, **kwargs)
         if self.data:
-            self.challenges = self.request.session['u2f_authentication_challenges']
+            self.sign_request = self.request.session['u2f_sign_request']
         else:
-            self.challenges = [
-                u2f.start_authenticate(d.to_json()) for d in self.user.u2f_keys.all()
-            ]
-            self.request.session['u2f_authentication_challenges'] = self.challenges
+            self.sign_request = u2f.begin_authentication(self.appId, [
+                d.to_json() for d in self.user.u2f_keys.all()
+            ])
+            self.request.session['u2f_sign_request'] = self.sign_request
 
     def validate_second_factor(self):
         response = json.loads(self.cleaned_data['response'])
         try:
-            # find the right challenge, the based on the key the user inserted
-            challenge = [c for c in self.challenges if c['keyHandle'] == response['keyHandle']][0]
-            device = self.user.u2f_keys.get(key_handle=response['keyHandle'])
-            login_counter, touch_asserted = u2f.verify_authenticate(
-                device.to_json(),
-                challenge,
-                response,
-            )
+            device, login_counter, _ = u2f.complete_authentication(self.sign_request, response)
             # TODO: store login_counter and verify it's increasing
+            device = self.user.u2f_keys.get(key_handle=device['keyHandle'])
             device.last_used_at = timezone.now()
             device.save()
-            del self.request.session['u2f_authentication_challenges']
+            del self.request.session['u2f_sign_request']
             return True
-        except InvalidSignature:
+        except ValueError:
             self.add_error('__all__', 'U2F validation failed -- bad signature.')
         return False
+
+
+class KeyRegistrationForm(SecondFactorForm):
+    response = forms.CharField()
 
 
 class BackupCodeForm(SecondFactorForm):

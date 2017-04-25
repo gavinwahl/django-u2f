@@ -47,43 +47,50 @@ class TwoFactorTest(TestCase):
 class U2FTest(TwoFactorTest):
     def enable_u2f(self):
         self.user.u2f_keys.create(
-            public_key='BCux01toHSq_5YHfsw3EAqfGGKirLoHnDqAuW5RedtP8dGbJTJ55-QEJ_alPDM06kHw7UOUOCawdHinHVrNbnKw',
-            key_handle='OJiPPVZ6oU-PszwbAAJhbanYvhawFrQi6n3AkcT1k7SeZDo3Ch6BU8i21kp2tcsyQ2BE7nc34RdljU4iS997vA',
-            app_id='http://localhost.com:8000',
+            key_handle='bbavVvfXPz2w8S3IwIS0LkE1SkC3MQuXSYjAYHVPFqUJIRQTIEyM3D34Lv2G4a_PuAZkZIQ6XV3ocwp47cPYjg',
+            public_key='BFp3EHDcpm5HxA4XYuCKlnNPZ3tphVzRvXsX2_J33REPU0bgFgWsUoyZHz6RGxdA84VgxDNI4lvUudr7JGmFdDk',
+            app_id='http://localhost:8000',
         )
 
     def set_challenge(self):
         session = self.client.session
-        session['u2f_authentication_challenges'] = [
-            {
-                "challenge": "jUvsJfqf2FMXkUTTFQ57gqNhVn0K2eJ7ElxnF3EK_M8",
-                "version": "U2F_V2",
-                "keyHandle": "OJiPPVZ6oU-PszwbAAJhbanYvhawFrQi6n3AkcT1k7SeZDo3Ch6BU8i21kp2tcsyQ2BE7nc34RdljU4iS997vA",
-                "appId": "http://localhost.com:8000",
-            }
-        ]
+        session['u2f_sign_request'] = {
+            'appId': 'https://localhost:8000',
+            'challenge': '9O7gQlN4O68Rs0ILsEjewRoNX3vHIC6V8m2XbFN4rVI',
+            'registeredKeys': [
+                {
+                    'appId': 'https://localhost:8000',
+                    'keyHandle': 'bbavVvfXPz2w8S3IwIS0LkE1SkC3MQuXSYjAYHVPFqUJIRQTIEyM3D34Lv2G4a_PuAZkZIQ6XV3ocwp47cPYjg',
+                    'publicKey': 'BFp3EHDcpm5HxA4XYuCKlnNPZ3tphVzRvXsX2_J33REPU0bgFgWsUoyZHz6RGxdA84VgxDNI4lvUudr7JGmFdDk',
+                    'version': 'U2F_V2',
+                },
+            ],
+        }
         session.save()
         return {
-            "keyHandle": "OJiPPVZ6oU-PszwbAAJhbanYvhawFrQi6n3AkcT1k7SeZDo3Ch6BU8i21kp2tcsyQ2BE7nc34RdljU4iS997vA",
-            "clientData": "eyJ0eXAiOiJuYXZpZ2F0b3IuaWQuZ2V0QXNzZXJ0aW9uIiwiY2hhbGxlbmdlIjoialV2c0pmcWYyRk1Ya1VUVEZRNTdncU5oVm4wSzJlSjdFbHhuRjNFS19NOCIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3QuY29tOjgwMDAiLCJjaWRfcHVia2V5IjoiIn0",
-            "signatureData": "AQAAADcwRQIhALnYwD3DMN3CAhKzhH7hwoJfSSiNMrOHhZq2nQA0WunTAiB2hKEpPn4u0znti-mjC4Xq6Ekv1tfopsapTsJ8EOxmYg",
+            "keyHandle": "bbavVvfXPz2w8S3IwIS0LkE1SkC3MQuXSYjAYHVPFqUJIRQTIEyM3D34Lv2G4a_PuAZkZIQ6XV3ocwp47cPYjg",
+            "clientData": "eyJ0eXAiOiJuYXZpZ2F0b3IuaWQuZ2V0QXNzZXJ0aW9uIiwiY2hhbGxlbmdlIjoiOU83Z1FsTjRPNjhSczBJTHNFamV3Um9OWDN2SElDNlY4bTJYYkZONHJWSSIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjgwMDAiLCJjaWRfcHVia2V5IjoidW51c2VkIn0",
+            "signatureData": "AQAAAQ8wRQIgXvlM1xGuDy5WAIb0irJsu_BLrQCrBUBD4xMw1sR-d9cCIQCywv1E7A-iGDL-Xac9loelFqBewfHP80xCZ7wNDiWYcw"
         }
 
     def set_add_key(self):
         session = self.client.session
-        session['u2f_registration_challenge'] = {
-            'challenge': "1C57ZaTxUkXyMJqcfdNc_7Lp34aPgYDNt_nL2wwsLPQ",
-            'version': "U2F_V2",
-            'appId': "http://localhost.com:8000",
+        session['u2f_registration_request'] = {
+            "appId": "https://localhost:8000",
+            "registerRequests": [
+                {
+                    "challenge": "sodVF6tVg6dgfEbHPdLlITFDqR4-J31aTy3ZO1DexiE",
+                    "version": "U2F_V2"
+                }
+            ],
+            "registeredKeys": []
         }
-
         session.save()
         return {
-            "registrationData": "BQR-zQiLHRPYDlXEDG_yZ_Y53mLP20BXMUpm-zqH1ntWHr3S1EZtJbFKNkWRwo2BQA-SBRZH4SvA2mZyCK2wP4AZQMF2iVGLM8guW_L2o7tfu9THxhMtOFRC6WICT_Kn2Vn3kxkMLjt4fBYO0ZeatzA5qaBk_O6PIypq0R9oYmHiQYEwggIcMIIBBqADAgECAgQk26tAMAsGCSqGSIb3DQEBCzAuMSwwKgYDVQQDEyNZdWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAwMDBaGA8yMDUwMDkwNDAwMDAwMFowKzEpMCcGA1UEAwwgWXViaWNvIFUyRiBFRSBTZXJpYWwgMTM1MDMyNzc4ODgwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQCsJS-NH1HeUHEd46-xcpN7SpHn6oeb-w5r-veDCBwy1vUvWnJanjjv4dR_rV5G436ysKUAXUcsVe5fAnkORo2oxIwEDAOBgorBgEEAYLECgEBBAAwCwYJKoZIhvcNAQELA4IBAQCjY64OmDrzC7rxLIst81pZvxy7ShsPy2jEhFWEkPaHNFhluNsCacNG5VOITCxWB68OonuQrIzx70MfcqwYnbIcgkkUvxeIpVEaM9B7TI40ZHzp9h4VFqmps26QCkAgYfaapG4SxTK5k_lCPvqqTPmjtlS03d7ykkpUj9WZlVEN1Pf02aTVIZOHPHHJuH6GhT6eLadejwxtKDBTdNTv3V4UlvjDOQYQe9aL1jUNqtLDeBHso8pDvJMLc0CX3vadaI2UVQxM-xip4kuGouXYj0mYmaCbzluBDFNsrzkNyL3elg3zMMrKvAUhoYMjlX_-vKWcqQsgsQ0JtSMcWMJ-umeDMEUCIDmr7y3CyKDwDThdf8MUyp3R_meuSz6pYPavyjt5vDlHAiEApjqut4HuWZzTz9WmjDTAa8_Dn8DmrXfMCbFFsYXU_nU",
-            "challenge": "1C57ZaTxUkXyMJqcfdNc_7Lp34aPgYDNt_nL2wwsLPQ",
+            "registrationData": "BQRadxBw3KZuR8QOF2LgipZzT2d7aYVc0b17F9vyd90RD1NG4BYFrFKMmR8-kRsXQPOFYMQzSOJb1Lna-yRphXQ5QG22r1b31z89sPEtyMCEtC5BNUpAtzELl0mIwGB1TxalCSEUEyBMjNw9-C79huGvz7gGZGSEOl1d6HMKeO3D2I4wggIcMIIBBqADAgECAgQk26tAMAsGCSqGSIb3DQEBCzAuMSwwKgYDVQQDEyNZdWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAwMDBaGA8yMDUwMDkwNDAwMDAwMFowKzEpMCcGA1UEAwwgWXViaWNvIFUyRiBFRSBTZXJpYWwgMTM1MDMyNzc4ODgwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQCsJS-NH1HeUHEd46-xcpN7SpHn6oeb-w5r-veDCBwy1vUvWnJanjjv4dR_rV5G436ysKUAXUcsVe5fAnkORo2oxIwEDAOBgorBgEEAYLECgEBBAAwCwYJKoZIhvcNAQELA4IBAQCjY64OmDrzC7rxLIst81pZvxy7ShsPy2jEhFWEkPaHNFhluNsCacNG5VOITCxWB68OonuQrIzx70MfcqwYnbIcgkkUvxeIpVEaM9B7TI40ZHzp9h4VFqmps26QCkAgYfaapG4SxTK5k_lCPvqqTPmjtlS03d7ykkpUj9WZlVEN1Pf02aTVIZOHPHHJuH6GhT6eLadejwxtKDBTdNTv3V4UlvjDOQYQe9aL1jUNqtLDeBHso8pDvJMLc0CX3vadaI2UVQxM-xip4kuGouXYj0mYmaCbzluBDFNsrzkNyL3elg3zMMrKvAUhoYMjlX_-vKWcqQsgsQ0JtSMcWMJ-umeDMEYCIQCcFT1apcHBu3hHT8PVrsg-iijUzE81mtcK7Nf4rkiDyQIhAN_IgQvxxN4HT00d04UWQjEpCywALZBlVG5NiAwq7Ive",
+            "challenge": "sodVF6tVg6dgfEbHPdLlITFDqR4-J31aTy3ZO1DexiE",
             "version": "U2F_V2",
-            "appId": "http://localhost.com:8000",
-            "clientData": "eyJ0eXAiOiJuYXZpZ2F0b3IuaWQuZmluaXNoRW5yb2xsbWVudCIsImNoYWxsZW5nZSI6IjFDNTdaYVR4VWtYeU1KcWNmZE5jXzdMcDM0YVBnWUROdF9uTDJ3d3NMUFEiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0LmNvbTo4MDAwIiwiY2lkX3B1YmtleSI6IiJ9",
+            "clientData": "eyJ0eXAiOiJuYXZpZ2F0b3IuaWQuZmluaXNoRW5yb2xsbWVudCIsImNoYWxsZW5nZSI6InNvZFZGNnRWZzZkZ2ZFYkhQZExsSVRGRHFSNC1KMzFhVHkzWk8xRGV4aUUiLCJvcmlnaW4iOiJodHRwczovL2xvY2FsaG9zdDo4MDAwIiwiY2lkX3B1YmtleSI6InVudXNlZCJ9",
         }
 
 
@@ -136,9 +143,9 @@ class TestU2F(U2FTest):
             'response': json.dumps(device_response),
         })
         added_key_obj = self.user.u2f_keys.get()
-        self.assertEqual(added_key_obj.public_key, 'BH7NCIsdE9gOVcQMb_Jn9jneYs_bQFcxSmb7OofWe1YevdLURm0lsUo2RZHCjYFAD5IFFkfhK8DaZnIIrbA_gBk')
-        self.assertEqual(added_key_obj.key_handle, 'wXaJUYszyC5b8vaju1-71MfGEy04VELpYgJP8qfZWfeTGQwuO3h8Fg7Rl5q3MDmpoGT87o8jKmrRH2hiYeJBgQ')
-        self.assertEqual(added_key_obj.app_id, 'http://localhost.com:8000')
+        self.assertEqual(added_key_obj.public_key, "BFp3EHDcpm5HxA4XYuCKlnNPZ3tphVzRvXsX2_J33REPU0bgFgWsUoyZHz6RGxdA84VgxDNI4lvUudr7JGmFdDk")
+        self.assertEqual(added_key_obj.key_handle, "bbavVvfXPz2w8S3IwIS0LkE1SkC3MQuXSYjAYHVPFqUJIRQTIEyM3D34Lv2G4a_PuAZkZIQ6XV3ocwp47cPYjg")
+        self.assertEqual(added_key_obj.app_id, 'https://localhost:8000')
 
     def test_key_delete(self):
         other_user = User.objects.create_superuser(
