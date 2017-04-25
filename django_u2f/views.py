@@ -7,7 +7,7 @@ from six.moves.urllib.parse import quote
 from django.views.generic import FormView, ListView, TemplateView
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import load_backend
-from django.contrib.auth import views as auth_views
+from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.contrib import auth, messages
 from django.conf import settings
@@ -27,27 +27,24 @@ from .forms import KeyResponseForm, BackupCodeForm, TOTPForm, KeyRegistrationFor
 from .models import TOTPDevice
 
 
-class U2FLoginView(FormView):
+class U2FLoginView(LoginView):
     form_class = AuthenticationForm
     template_name = 'u2f/login.html'
 
     @property
     def is_admin(self):
-        return self.get_template_names() == 'admin/login.html'
+        return self.template_name == 'admin/login.html'
 
     def requires_two_factor(self, user):
         return (user.u2f_keys.exists() or
                 user.backup_codes.exists() or
                 user.totp_devices.exists())
 
-    def get_template_names(self):
-        return self.kwargs.get('template_name', self.template_name)
-
     def form_valid(self, form):
         user = form.get_user()
         if not self.requires_two_factor(user):
             # no keys registered, use single-factor auth
-            return original_auth_login_view(self.request, **self.kwargs)
+            return super(U2FLoginView, self).form_valid(form)
         else:
             self.request.session['u2f_pre_verify_user_pk'] = user.pk
             self.request.session['u2f_pre_verify_user_backend'] = user.backend
@@ -79,8 +76,7 @@ class AdminU2FLoginView(U2FLoginView):
 class OriginMixin(object):
     def get_origin(self):
         return '{scheme}://{host}'.format(
-            # BBB: Django >= 1.7 has request.scheme
-            scheme='https' if self.request.is_secure() else 'http',
+            scheme=self.request.scheme,
             host=self.request.get_host(),
         )
 

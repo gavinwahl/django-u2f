@@ -1,13 +1,10 @@
 import json
 
-import django
 from django import forms
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from u2flib_server import u2f
-
-from .models import BackupCode
 
 
 class SecondFactorForm(forms.Form):
@@ -55,22 +52,7 @@ class BackupCodeForm(SecondFactorForm):
 
     code = forms.CharField(label=_("Code"), widget=forms.TextInput(attrs={'autocomplete': 'off'}))
 
-    def _validate_second_factor_legacy(self):
-        # This implementation has a race condition where the same code could be
-        # used twice, but Django < 1.9 doesn't return the count of deleted
-        # objects.
-        try:
-            obj = self.user.backup_codes.get(code=self.cleaned_data['code'])
-        except BackupCode.DoesNotExist:
-             self.add_error('code', self.INVALID_ERROR_MESSAGE)
-             return False
-        obj.delete()
-        return True
-
     def validate_second_factor(self):
-        if django.VERSION < (1, 9):
-            return self._validate_second_factor_legacy()
-
         count, _ = self.user.backup_codes.filter(code=self.cleaned_data['code']).delete()
         if count == 0:
             self.add_error('code', self.INVALID_ERROR_MESSAGE)
