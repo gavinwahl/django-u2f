@@ -100,7 +100,9 @@ class AddKeyView(OriginMixin, FormView):
 
     def get_context_data(self, **kwargs):
         kwargs = super(AddKeyView, self).get_context_data(**kwargs)
-        request = u2f.begin_registration(self.get_origin(), [key.to_json() for key in self.request.user.u2f_keys.all()])
+        request = u2f.begin_registration(self.get_origin(), [
+            key.to_json() for key in self.request.user.u2f_keys.all()
+        ])
         self.request.session['u2f_registration_request'] = request
         kwargs['registration_request'] = request
 
