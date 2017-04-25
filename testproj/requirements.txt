@@ -6,3 +6,4 @@ django-debug-toolbar
 # 'django_extensions.templatetags.highlighting': says :Please install 'pygments'
 # library to use highlighting.
 pygments
+django-debug-toolbar
