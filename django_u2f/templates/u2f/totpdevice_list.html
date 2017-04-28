@@ -3,25 +3,30 @@
 
 {% block content %}
 {{ block.super }}
-
+<h1>{% trans "TOTP (Authenticator) Devices" %}</h1>
+<a href="{% url 'u2f:two-factor-settings' %}">{% trans '&larr; Back to settings' %}</a>
 <table>
-    <thead>
-        <tr>
-            <th>{% trans 'Added on' %}
-            <th>{% trans 'Last used on' %}
-    <tbody>
-        {% for device in object_list %}
-        <tr>
-            <td>{{ device.created_at }}
-            {% trans 'Never' as never %}
-            <td>{{ device.last_used_at|default:never}}
-            <td><form method="post">{% csrf_token %}
-                    <input name="device_id" type="hidden" value="{{ device.pk }}">
-                    <input type="submit" name="delete" value="X">
-                </form>
-        {% endfor %}
+  <thead>
+    <tr>
+      <th>{% trans 'Added on' %}</th>
+      <th>{% trans 'Last used on' %}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for device in object_list %}
+    <tr>
+      <td>{{ device.created_at }}</td>
+      {% trans 'Never' as never %}
+      <td>{{ device.last_used_at|default:never}}</td>
+      <td>
+        <form method="post">{% csrf_token %}
+          <input name="device_id" type="hidden" value="{{ device.pk }}">
+          <input type="submit" name="delete" value="X">
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
-
 <a href="{% url 'u2f:add-totp' %}">{% trans 'Add another TOTP (Authenticator) Device' %}</a>
-
 {% endblock %}

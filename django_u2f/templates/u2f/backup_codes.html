@@ -4,7 +4,7 @@
 {% block content %}
 {{ block.super }}
 
-<a href="{% url 'u2f:two-factor-settings' %}">{% trans 'Back to settings' %}</a>
+<a href="{% url 'u2f:two-factor-settings' %}">{% trans '&larr; Back to settings' %}</a>
 
 <ul>
   {% for code in object_list %}
