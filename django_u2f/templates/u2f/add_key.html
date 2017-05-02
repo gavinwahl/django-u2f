@@ -1,6 +1,7 @@
 {% extends "u2f/base.html" %}
 {% load argonauts %}
 {% load i18n %}
+{% load static %}
 
 {% block content %}
 {{ block.super }}
@@ -12,14 +13,8 @@
     {{ form.response }}
 </form>
 
-<script>
-    var request = {{ registration_request|json }};
-    u2f.register(request.appId, request.registerRequests, request.registeredKeys, function(resp) {
-        var form = document.getElementById('u2f-form');
-        form.response.value = JSON.stringify(resp);
-        if ( ! handleU2FError(resp) ) {
-            form.submit();
-        }
-    })
+<script type="application/json" id="django_u2f_registration">
+  {{ registration_request|json }}
 </script>
+<script src="{% static 'django_u2f/django_u2f.js' %}"></script>
 {% endblock %}
