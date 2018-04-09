@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import auth, messages
 from django.conf import settings
 from django.http import HttpResponseRedirect
-from django.core.urlresolvers import reverse, reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.http import is_safe_url, urlencode
 from django.shortcuts import resolve_url, get_object_or_404
 from django.contrib.sites.shortcuts import get_current_site
@@ -295,7 +295,7 @@ class AddTOTPDeviceView(OriginMixin, FormView):
 
     def get_context_data(self, **kwargs):
         kwargs = super(AddTOTPDeviceView, self).get_context_data(**kwargs)
-        kwargs['base32_key'] = b32encode(self.key)
+        kwargs['base32_key'] = b32encode(self.key).decode()
         kwargs['qr_svg'] = self.get_qrcode(self.get_otpauth_url(self.key))
         return kwargs
 

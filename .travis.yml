@@ -22,6 +22,11 @@ python:
   - 3.6
 env:
   - DJANGO_PACKAGE="Django>=1.11,<1.12"
+  - DJANGO_PACKAGE="Django==2.0"
+matrix:
+    exclude:
+        - python: 2.7
+          env: DJANGO_PACKAGE="Django==2.0"
 install:
   - pip install --upgrade pip wheel
   - pip install -q $DJANGO_PACKAGE 
