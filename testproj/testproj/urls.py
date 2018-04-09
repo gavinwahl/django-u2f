@@ -8,7 +8,7 @@ admin.autodiscover()
 
 urlpatterns = [
     url(r'^u2f/', include(django_u2f.urls, namespace='u2f')),
-    url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', admin.site.urls),
 ]
 
 if settings.DEBUG:
