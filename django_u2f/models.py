@@ -15,9 +15,11 @@ from .oath import totp, T
 
 
 class U2FKey(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='u2f_keys')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='u2f_keys',
+                             on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     last_used_at = models.DateTimeField(null=True)
+    counter = models.IntegerField(default=0)
 
     public_key = models.TextField(unique=True)
     key_handle = models.TextField()
@@ -47,7 +49,9 @@ class BackupCodeManager(models.Manager):
 
 
 class BackupCode(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='backup_codes')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             related_name='backup_codes',
+                             on_delete=models.CASCADE)
     code = models.CharField(max_length=8)
 
     class Meta:
@@ -59,7 +63,9 @@ class BackupCode(models.Model):
 
 
 class TOTPDevice(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='totp_devices')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             related_name='totp_devices',
+                             on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     last_used_at = models.DateTimeField(null=True)
 

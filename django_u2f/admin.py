@@ -2,6 +2,9 @@ from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext as _
+from django.contrib import admin
+
+from .models import U2FKey, BackupCode, TOTPDevice
 
 
 def login(self, request, extra_context=None):
@@ -41,3 +44,20 @@ def login(self, request, extra_context=None):
 def monkeypatch_admin():
     from django.contrib.admin.sites import AdminSite
     AdminSite.login = login
+
+
+@admin.register(U2FKey)
+class U2FKeyAdmin(admin.ModelAdmin):
+    list_display = (
+        'user', 'key_handle', 'created_at', 'last_used_at', 'counter'
+    )
+
+
+@admin.register(BackupCode)
+class BackupCodeAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(TOTPDevice)
+class TOTPDeviceAdmin(admin.ModelAdmin):
+    pass

@@ -8,7 +8,7 @@ from six import StringIO
 import unittest
 
 from django.test import TestCase, Client
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth import get_user_model, SESSION_KEY
 from django.utils.crypto import get_random_string
 from django.utils import timezone
@@ -46,7 +46,7 @@ class TwoFactorTest(TestCase):
 
 class U2FTest(TwoFactorTest):
     def enable_u2f(self):
-        self.user.u2f_keys.create(
+        self.u2f_key = self.user.u2f_keys.create(
             key_handle='bbavVvfXPz2w8S3IwIS0LkE1SkC3MQuXSYjAYHVPFqUJIRQTIEyM3D34Lv2G4a_PuAZkZIQ6XV3ocwp47cPYjg',
             public_key='BFp3EHDcpm5HxA4XYuCKlnNPZ3tphVzRvXsX2_J33REPU0bgFgWsUoyZHz6RGxdA84VgxDNI4lvUudr7JGmFdDk',
             app_id='http://localhost:8000',
@@ -114,6 +114,8 @@ class TestU2F(U2FTest):
         self.assertEquals(r.status_code, 302)
         self.assertTrue(r['location'].endswith('/next/'))
         self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
+        self.u2f_key.refresh_from_db()
+        self.assertEqual(self.u2f_key.counter, 271)
 
     def test_failed_u2f_login(self):
         self.enable_u2f()
@@ -126,6 +128,30 @@ class TestU2F(U2FTest):
         })
         self.assertNotIn(SESSION_KEY, self.client.session)
         self.assertContains(r, 'U2F validation failed')
+        self.u2f_key.refresh_from_db()
+        self.assertEqual(self.u2f_key.counter, 0)
+
+    def test_u2f_login_with_forged_key(self):
+        self.enable_u2f()
+        r = self.login()
+        self.assertNotIn(SESSION_KEY, self.client.session)
+        self.assertIn(reverse('u2f:verify-second-factor'), r['location'])
+
+        # the challenge test data has a counter of 271. Let's modify our
+        # counter
+        key = self.user.u2f_keys.first()
+        key.counter = 999
+        key.save()
+
+        device_response = self.set_challenge()
+        r = self.client.post(r['location'], {
+            'response': json.dumps(device_response),
+            'type': 'u2f',
+        })
+        self.assertNotIn(SESSION_KEY, self.client.session)
+        self.assertContains(r, 'U2F validation failed')
+        self.u2f_key.refresh_from_db()
+        self.assertEqual(self.u2f_key.counter, 999)
 
     def test_verify_when_not_logged_in(self):
         r = self.client.get(reverse('u2f:verify-second-factor'))
