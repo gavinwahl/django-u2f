@@ -32,9 +32,13 @@ class KeyResponseForm(SecondFactorForm):
         response = json.loads(self.cleaned_data['response'])
         try:
             device, login_counter, _ = u2f.complete_authentication(self.sign_request, response)
-            # TODO: store login_counter and verify it's increasing
             device = self.user.u2f_keys.get(key_handle=device['keyHandle'])
+            if device.counter >= login_counter:
+                raise ValueError(
+                    'Stored U2F counter is ahead of the challenge'
+                )
             device.last_used_at = timezone.now()
+            device.counter = login_counter
             device.save()
             del self.request.session['u2f_sign_request']
             return True

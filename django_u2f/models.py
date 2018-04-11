@@ -19,6 +19,7 @@ class U2FKey(models.Model):
                              on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     last_used_at = models.DateTimeField(null=True)
+    counter = models.IntegerField(default=0)
 
     public_key = models.TextField(unique=True)
     key_handle = models.TextField()
