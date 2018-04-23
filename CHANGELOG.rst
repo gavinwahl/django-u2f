@@ -1,7 +1,7 @@
 0.3.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Allow overriding the view used for admin login in monkeypatch_admin.
 
 
 0.2.0 (2017-05-22)
