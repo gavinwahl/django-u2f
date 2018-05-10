@@ -32,11 +32,22 @@ handle that.
 Demo
 ====
 
-To see a demo, use the test project included in the repo. Install django-u2f
-with ``pip install -e .``, then install the demo-specific requirements with
-``cd testproj; pip install -r requirements.txt``. Run syncdb and create a user,
-create a self-signed certificate with ``./mkcert.sh``, 
-then start ``./manage.py runserver_plus --cert localhost``.
+To see a demo, use the test project included in the repo and perform the 
+following steps (using virtualenv is optional)::
+
+   git clone https://github.com/gavinwahl/django-u2f
+   cd django-u2f
+   virtualenv -p python3 venv
+   source venv/bin/activate
+   pip install -e .
+   cd testproj
+   pip install -r requirements.txt
+   python manage.py migrate
+   python manage.py createsuperuser
+
+   # finally create a self-signed certificate and start the webserver
+   ./mkcert.sh  
+   python manage.py runserver_plus --cert localhost
 
 For now the only supported browser is Chrome, version 41 or higher.
 U2F also requires that the page is served over a secure connection.
