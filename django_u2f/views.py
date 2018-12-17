@@ -226,6 +226,12 @@ class VerifySecondFactorView(OriginMixin, TemplateView):
 class TwoFactorSettingsView(TemplateView):
     template_name = 'u2f/two_factor_settings.html'
 
+    def get_context_data(self, **kwargs):
+        context= super(TwoFactorSettingsView, self).get_context_data(**kwargs)
+        context['u2f_enabled'] = self.request.user.u2f_keys.exists()
+        context['backup_codes'] = self.request.user.backup_codes.all()
+        context['totp_enabled'] = self.request.user.totp_devices.exists()
+        return context
 
 class KeyManagementView(ListView):
     template_name = 'u2f/key_list.html'
