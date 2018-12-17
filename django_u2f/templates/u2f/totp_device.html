@@ -7,10 +7,12 @@
 
 <p>{% trans 'Scan this in your authenticator app:' %}</p>
 
+<a href="{{ otpauth }}">
 {{ qr_svg|safe }}
+</a>
 
 <p>
-  {% trans "Or, if you can't scan a QR Code, enter this key as a time-based account:" %} <tt>{{ base32_key }}</tt>
+  {% trans "Or, if you can't scan a QR Code, enter this key as a time-based account:" %} <a href="{{ otpauth }}"><tt>{{ base32_key }}</tt></a>
 </p>
 
 <p>
