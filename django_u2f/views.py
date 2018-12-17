@@ -302,7 +302,8 @@ class AddTOTPDeviceView(OriginMixin, FormView):
     def get_context_data(self, **kwargs):
         kwargs = super(AddTOTPDeviceView, self).get_context_data(**kwargs)
         kwargs['base32_key'] = b32encode(self.key).decode()
-        kwargs['qr_svg'] = self.get_qrcode(self.get_otpauth_url(self.key))
+        kwargs['otpauth'] = self.get_otpauth_url(self.key) 
+        kwargs['qr_svg'] = self.get_qrcode(kwargs['otpauth'])
         return kwargs
 
     def get_form_kwargs(self):
