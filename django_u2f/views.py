@@ -53,7 +53,7 @@ class U2FLoginView(LoginView):
             redirect_to = self.request.POST.get(auth.REDIRECT_FIELD_NAME,
                                                 self.request.GET.get(auth.REDIRECT_FIELD_NAME, ''))
             params = {}
-            if is_safe_url(url=redirect_to, host=self.request.get_host()):
+            if is_safe_url(url=redirect_to, allowed_hosts=self.request.get_host()):
                 params[auth.REDIRECT_FIELD_NAME] = redirect_to
             if self.is_admin:
                 params['admin'] = 1
@@ -218,7 +218,7 @@ class VerifySecondFactorView(OriginMixin, TemplateView):
 
         redirect_to = self.request.POST.get(auth.REDIRECT_FIELD_NAME,
                                             self.request.GET.get(auth.REDIRECT_FIELD_NAME, ''))
-        if not is_safe_url(url=redirect_to, host=self.request.get_host()):
+        if not is_safe_url(url=redirect_to, allowed_hosts=self.request.get_host()):
             redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
         return HttpResponseRedirect(redirect_to)
 
