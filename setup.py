@@ -24,7 +24,7 @@ setup(
     install_requires=[
         'python-u2flib-server>=5.0.0',
         'django-argonauts',
-        'django>=1.11',
+        'django>=1.11,<3.0.0',
         'qrcode',
         'six',
     ],
