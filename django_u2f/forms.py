@@ -6,9 +6,23 @@ from django.utils.translation import ugettext_lazy as _
 import webauthn
 from webauthn import options_to_json, base64url_to_bytes
 from webauthn.helpers.structs import PublicKeyCredentialDescriptor, AuthenticationCredential
+from webauthn.helpers.exceptions import InvalidAuthenticationResponse
 from base64 import b64decode
 
-from u2flib_server import u2f
+
+class OriginMixin(object):
+    def get_origin(self):
+        return '{scheme}://{host}'.format(
+            scheme=self.request.scheme,
+            host=self.request.get_host(),
+        )
+
+    def get_rp_id(self):
+        return
+
+
+def get_rp_id(request):
+    return request.get_host().strip(':{}'.format(request.get_port()))
 
 
 class SecondFactorForm(forms.Form):
@@ -19,7 +33,7 @@ class SecondFactorForm(forms.Form):
         return super(SecondFactorForm, self).__init__(*args, **kwargs)
 
 
-class KeyResponseForm(SecondFactorForm):
+class KeyResponseForm(SecondFactorForm, OriginMixin):
     response = forms.CharField()
 
     def __init__(self, *args, **kwargs):
@@ -28,7 +42,7 @@ class KeyResponseForm(SecondFactorForm):
             self.sign_request = self.request.session['u2f_sign_request']
         else:
             options = webauthn.generate_authentication_options(
-                rp_id='localhost',
+                rp_id=get_rp_id(self.request),
                 allow_credentials=[
                     PublicKeyCredentialDescriptor(id=base64url_to_bytes(x.key_handle))
                     for x in self.user.u2f_keys.all()
@@ -37,13 +51,13 @@ class KeyResponseForm(SecondFactorForm):
             options = options_to_json(options)
             options = json.loads(options)
 
-            # should appid come from the u2f_key model?
             options['extensions'] = {
-                'appid': 'https://localhost:8000'
+                'appid': self.get_origin()
             }
             options = {'publicKey': options}
             self.sign_request = options
             self.request.session['u2f_sign_request'] = options
+            self.request.session['expected_origin'] = self.get_origin()
 
     def validate_second_factor(self):
         response = self.cleaned_data['response']
@@ -52,7 +66,7 @@ class KeyResponseForm(SecondFactorForm):
             json_data = json.loads(response)
             key = self.user.u2f_keys.get(key_handle=json_data['id'])
             expected_rp_id = data['rpId']
-            # use app id as expected_rp_id if appid extension is provided
+            # use appid as expected_rp_id if appid extension is True
             # https://github.com/duo-labs/py_webauthn/issues/116#issuecomment-1010385763
             if json_data['clientExtensionResults'].get('appid', False):
                 expected_rp_id = key.app_id
@@ -60,18 +74,25 @@ class KeyResponseForm(SecondFactorForm):
                 credential=AuthenticationCredential.parse_raw(response),
                 expected_challenge=base64url_to_bytes(data['challenge']),
                 expected_rp_id=expected_rp_id,
-                expected_origin='https://localhost:8000',
+                expected_origin=self.request.session['expected_origin'],
                 credential_public_key=base64url_to_bytes(key.public_key),
                 credential_current_sign_count=0,
+                # credential_current_sign_count=key.sign_count,
+                # user verification not necessary in 2FA
                 require_user_verification=False,
             )
-            # TODO: store login_counter and verify it's increasing
+            # TODO: store sign_count and verify it's increasing
+            # verify_authentication_response takes care of this if we give it a proper sign_count
+            # key.sign_count = verification.new_sign_count
             key.last_used_at = timezone.now()
             key.save()
             del self.request.session['u2f_sign_request']
+            del self.request.session['expected_origin']
             return True
         except ValueError:
-            self.add_error('__all__', 'U2F validation failed -- bad signature.')
+            self.add_error('__all__', 'Validation failed -- bad signature.')
+        except InvalidAuthenticationResponse:
+            self.add_error('__all__', 'Authentication Failed')
         return False
 
 
