@@ -100,7 +100,6 @@ class AddKeyView(OriginMixin, FormView):
         request = generate_registration_options(
             rp_id=get_rp_id(self.request),
             rp_name=get_rp_id(self.request),
-            # recommended to use a random saved value for user id, unique and stable
             user_id=str(self.request.user.id),
             user_name=str(self.request.user.id),
             exclude_credentials=[

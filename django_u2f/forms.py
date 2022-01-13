@@ -1,13 +1,14 @@
 import json
 
 from django import forms
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+
 import webauthn
 from webauthn import options_to_json, base64url_to_bytes
 from webauthn.helpers.structs import PublicKeyCredentialDescriptor, AuthenticationCredential
 from webauthn.helpers.exceptions import InvalidAuthenticationResponse
-from base64 import b64decode
 
 
 class OriginMixin(object):
@@ -77,22 +78,18 @@ class KeyResponseForm(SecondFactorForm, OriginMixin):
                 expected_origin=self.request.session['expected_origin'],
                 credential_public_key=base64url_to_bytes(key.public_key),
                 credential_current_sign_count=0,
-                # credential_current_sign_count=key.sign_count,
-                # user verification not necessary in 2FA
                 require_user_verification=False,
             )
             # TODO: store sign_count and verify it's increasing
-            # verify_authentication_response takes care of this if we give it a proper sign_count
-            # key.sign_count = verification.new_sign_count
             key.last_used_at = timezone.now()
             key.save()
             del self.request.session['u2f_sign_request']
             del self.request.session['expected_origin']
             return True
-        except ValueError:
+        except (ValueError, InvalidAuthenticationResponse) as e:
             self.add_error('__all__', 'Validation failed -- bad signature.')
-        except InvalidAuthenticationResponse:
-            self.add_error('__all__', 'Authentication Failed')
+        except ObjectDoesNotExist:
+            self.add_error('__all__', 'Validation failed')
         return False
 
 
