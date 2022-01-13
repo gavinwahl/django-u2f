@@ -6,6 +6,7 @@ import datetime
 from base64 import b32decode
 from six import StringIO
 import unittest
+from unittest import mock
 
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -47,51 +48,111 @@ class TwoFactorTest(TestCase):
 class U2FTest(TwoFactorTest):
     def enable_u2f(self):
         self.user.u2f_keys.create(
-            key_handle='bbavVvfXPz2w8S3IwIS0LkE1SkC3MQuXSYjAYHVPFqUJIRQTIEyM3D34Lv2G4a_PuAZkZIQ6XV3ocwp47cPYjg',
-            public_key='BFp3EHDcpm5HxA4XYuCKlnNPZ3tphVzRvXsX2_J33REPU0bgFgWsUoyZHz6RGxdA84VgxDNI4lvUudr7JGmFdDk',
-            app_id='http://localhost:8000',
+            key_handle='0A8u1AifaDA-D6tjOppWWSEUaBScNnDeashgT869algXVHf6-7ZGfVy8asVWgbjiYm5cd7i9WlrWffgMQXTOQg',
+            public_key='pQECAyYgASFYIHlYYfK3OwMqc-wvfVShLshA17BpbFvqSzVafTYshcF7IlggAkUNp9r5xt8Mp9tLpYNxp1Slt7HmKWJBSQouMaqpAbY',
+            app_id='https://localhost:8000',
         )
 
     def set_challenge(self):
         session = self.client.session
         session['u2f_sign_request'] = {
-            'appId': 'https://localhost:8000',
-            'challenge': '9O7gQlN4O68Rs0ILsEjewRoNX3vHIC6V8m2XbFN4rVI',
-            'registeredKeys': [
-                {
-                    'appId': 'https://localhost:8000',
-                    'keyHandle': 'bbavVvfXPz2w8S3IwIS0LkE1SkC3MQuXSYjAYHVPFqUJIRQTIEyM3D34Lv2G4a_PuAZkZIQ6XV3ocwp47cPYjg',
-                    'publicKey': 'BFp3EHDcpm5HxA4XYuCKlnNPZ3tphVzRvXsX2_J33REPU0bgFgWsUoyZHz6RGxdA84VgxDNI4lvUudr7JGmFdDk',
-                    'version': 'U2F_V2',
-                },
-            ],
+            "publicKey": {
+                "challenge": "mn4GAUL58lCqEXuXUy7MztfgKo2osRqBnIjTf9LHoxd00CXQVGtIxjMtP-79n7EiMlYJoHiRlWfkeSWTYluAxg",
+                "allowCredentials": [
+                    {
+                        "id": "0A8u1AifaDA-D6tjOppWWSEUaBScNnDeashgT869algXVHf6-7ZGfVy8asVWgbjiYm5cd7i9WlrWffgMQXTOQg",
+                        "type": "public-key"
+                    }
+                ],
+                "userVerification": "preferred",
+                "timeout": 60000,
+                "rpId": "localhost",
+                "extensions": {
+                    "appid": "https://localhost:8000"
+                }
+            }
         }
+        session['expected_origin'] = 'https://localhost:8000'
         session.save()
-        return {
-            "keyHandle": "bbavVvfXPz2w8S3IwIS0LkE1SkC3MQuXSYjAYHVPFqUJIRQTIEyM3D34Lv2G4a_PuAZkZIQ6XV3ocwp47cPYjg",
-            "clientData": "eyJ0eXAiOiJuYXZpZ2F0b3IuaWQuZ2V0QXNzZXJ0aW9uIiwiY2hhbGxlbmdlIjoiOU83Z1FsTjRPNjhSczBJTHNFamV3Um9OWDN2SElDNlY4bTJYYkZONHJWSSIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjgwMDAiLCJjaWRfcHVia2V5IjoidW51c2VkIn0",
-            "signatureData": "AQAAAQ8wRQIgXvlM1xGuDy5WAIb0irJsu_BLrQCrBUBD4xMw1sR-d9cCIQCywv1E7A-iGDL-Xac9loelFqBewfHP80xCZ7wNDiWYcw"
+        resp = {
+            'clientExtensionResults': {'appid': False},
+            'id': '0A8u1AifaDA-D6tjOppWWSEUaBScNnDeashgT869algXVHf6-7ZGfVy8asVWgbjiYm5cd7i9WlrWffgMQXTOQg',
+            'rawId': '0A8u1AifaDA-D6tjOppWWSEUaBScNnDeashgT869algXVHf6-7ZGfVy8asVWgbjiYm5cd7i9WlrWffgMQXTOQg',
+            'response': {
+                'authenticatorData': 'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MBAAAADA',
+                'clientDataJSON': 'eyJjaGFsbGVuZ2UiOiJtbjRHQVVMNThsQ3FFWHVYVXk3TXp0ZmdLbzJvc1JxQm5JalRmOUxIb3hkMDBDWFFWR3RJeGpNdFAtNzluN0VpTWxZSm9IaVJsV2ZrZVNXVFlsdUF4ZyIsImNsaWVudEV4dGVuc2lvbnMiOnsiYXBwaWQiOiJodHRwczovL2xvY2FsaG9zdDo4MDAwIn0sImhhc2hBbGdvcml0aG0iOiJTSEEtMjU2Iiwib3JpZ2luIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6ODAwMCIsInR5cGUiOiJ3ZWJhdXRobi5nZXQifQ',
+                'signature': 'MEYCIQC-_chxCsvIIPcovxfxA4S3wflNnh940I8aUjpE7qV3rQIhALUKBcbAh0A4NdArSJBZpE0lHKR9q2hBLfc7lx7Ce6-J',
+                'userHandle': None
+            },
+           'type': 'public-key'
         }
+        return resp
+
 
     def set_add_key(self):
         session = self.client.session
+        session['expected_origin'] = 'https://localhost:8000'
         session['u2f_registration_request'] = {
-            "appId": "https://localhost:8000",
-            "registerRequests": [
+            "rp": {
+                "name": "localhost",
+                "id": "localhost"
+            },
+            "user": {
+                "id": "MQ",
+                "name": "1",
+                "displayName": "1"
+            },
+            "challenge": "Bvb8XGi7IXqqVY8ijWjQfW9c59qtIUICzbcwtdpGGwuLVDHEsB39XCu8oDEu200XGQfg0kdap6aE6ka6Hm-_6g",
+            "pubKeyCredParams": [
                 {
-                    "challenge": "sodVF6tVg6dgfEbHPdLlITFDqR4-J31aTy3ZO1DexiE",
-                    "version": "U2F_V2"
+                    "type": "public-key",
+                    "alg": -7
+                },
+                {
+                    "type": "public-key",
+                    "alg": -8
+                },
+                {
+                    "type": "public-key",
+                    "alg": -36
+                },
+                {
+                    "type": "public-key",
+                    "alg": -37
+                },
+                {
+                    "type": "public-key",
+                    "alg": -38
+                },
+                {
+                    "type": "public-key",
+                    "alg": -39
+                },
+                {
+                    "type": "public-key",
+                    "alg": -257
+                },
+                {
+                    "type": "public-key",
+                    "alg": -258
+                },
+                {
+                    "type": "public-key",
+                    "alg": -259
                 }
             ],
-            "registeredKeys": []
+            "attestation": "none",
+            "timeout": 60000,
+            "excludeCredentials": []
         }
+
         session.save()
-        return {
-            "registrationData": "BQRadxBw3KZuR8QOF2LgipZzT2d7aYVc0b17F9vyd90RD1NG4BYFrFKMmR8-kRsXQPOFYMQzSOJb1Lna-yRphXQ5QG22r1b31z89sPEtyMCEtC5BNUpAtzELl0mIwGB1TxalCSEUEyBMjNw9-C79huGvz7gGZGSEOl1d6HMKeO3D2I4wggIcMIIBBqADAgECAgQk26tAMAsGCSqGSIb3DQEBCzAuMSwwKgYDVQQDEyNZdWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAwMDBaGA8yMDUwMDkwNDAwMDAwMFowKzEpMCcGA1UEAwwgWXViaWNvIFUyRiBFRSBTZXJpYWwgMTM1MDMyNzc4ODgwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQCsJS-NH1HeUHEd46-xcpN7SpHn6oeb-w5r-veDCBwy1vUvWnJanjjv4dR_rV5G436ysKUAXUcsVe5fAnkORo2oxIwEDAOBgorBgEEAYLECgEBBAAwCwYJKoZIhvcNAQELA4IBAQCjY64OmDrzC7rxLIst81pZvxy7ShsPy2jEhFWEkPaHNFhluNsCacNG5VOITCxWB68OonuQrIzx70MfcqwYnbIcgkkUvxeIpVEaM9B7TI40ZHzp9h4VFqmps26QCkAgYfaapG4SxTK5k_lCPvqqTPmjtlS03d7ykkpUj9WZlVEN1Pf02aTVIZOHPHHJuH6GhT6eLadejwxtKDBTdNTv3V4UlvjDOQYQe9aL1jUNqtLDeBHso8pDvJMLc0CX3vadaI2UVQxM-xip4kuGouXYj0mYmaCbzluBDFNsrzkNyL3elg3zMMrKvAUhoYMjlX_-vKWcqQsgsQ0JtSMcWMJ-umeDMEYCIQCcFT1apcHBu3hHT8PVrsg-iijUzE81mtcK7Nf4rkiDyQIhAN_IgQvxxN4HT00d04UWQjEpCywALZBlVG5NiAwq7Ive",
-            "challenge": "sodVF6tVg6dgfEbHPdLlITFDqR4-J31aTy3ZO1DexiE",
-            "version": "U2F_V2",
-            "clientData": "eyJ0eXAiOiJuYXZpZ2F0b3IuaWQuZmluaXNoRW5yb2xsbWVudCIsImNoYWxsZW5nZSI6InNvZFZGNnRWZzZkZ2ZFYkhQZExsSVRGRHFSNC1KMzFhVHkzWk8xRGV4aUUiLCJvcmlnaW4iOiJodHRwczovL2xvY2FsaG9zdDo4MDAwIiwiY2lkX3B1YmtleSI6InVudXNlZCJ9",
-        }
+        return {'clientExtensionResults': {},
+               'id': '0A8u1AifaDA-D6tjOppWWSEUaBScNnDeashgT869algXVHf6-7ZGfVy8asVWgbjiYm5cd7i9WlrWffgMQXTOQg',
+               'rawId': '0A8u1AifaDA-D6tjOppWWSEUaBScNnDeashgT869algXVHf6-7ZGfVy8asVWgbjiYm5cd7i9WlrWffgMQXTOQg',
+               'response': {'attestationObject': 'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjESZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQNAPLtQIn2gwPg-rYzqaVlkhFGgUnDZw3mrIYE_OvWpYF1R3-vu2Rn1cvGrFVoG44mJuXHe4vVpa1n34DEF0zkKlAQIDJiABIVggeVhh8rc7Aypz7C99VKEuyEDXsGlsW-pLNVp9NiyFwXsiWCACRQ2n2vnG3wyn20ulg3GnVKW3seYpYkFJCi4xqqkBtg',
+                            'clientDataJSON': 'eyJjaGFsbGVuZ2UiOiJCdmI4WEdpN0lYcXFWWThpaldqUWZXOWM1OXF0SVVJQ3piY3d0ZHBHR3d1TFZESEVzQjM5WEN1OG9ERXUyMDBYR1FmZzBrZGFwNmFFNmthNkhtLV82ZyIsImNsaWVudEV4dGVuc2lvbnMiOnt9LCJoYXNoQWxnb3JpdGhtIjoiU0hBLTI1NiIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjgwMDAiLCJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIn0'},
+               'type': 'public-key'}
 
 
 class TestU2F(U2FTest):
@@ -107,25 +168,26 @@ class TestU2F(U2FTest):
         self.assertIn(reverse('u2f:verify-second-factor'), r['location'])
 
         device_response = self.set_challenge()
-        r = self.client.post(r['location'], {
+        resp = self.client.post(r['location'], {
             'response': json.dumps(device_response),
             'type': 'u2f',
         })
-        self.assertEquals(r.status_code, 302)
-        self.assertTrue(r['location'].endswith('/next/'))
+        self.assertEquals(resp.status_code, 302)
+        self.assertTrue(resp['location'].endswith('/next/'))
         self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
 
     def test_failed_u2f_login(self):
         self.enable_u2f()
         r = self.login()
         device_response = self.set_challenge()
-        device_response['signatureData'] = 'a' + device_response['signatureData'][1:]
-        r = self.client.post(r['location'], {
+        resp = device_response['response']
+        resp['signature'] = 'a' + resp['signature'][1:]
+        response = self.client.post(r['location'], {
             'response': json.dumps(device_response),
             'type': 'u2f',
         })
         self.assertNotIn(SESSION_KEY, self.client.session)
-        self.assertContains(r, 'U2F validation failed')
+        self.assertContains(response, 'Validation failed')
 
     def test_verify_when_not_logged_in(self):
         r = self.client.get(reverse('u2f:verify-second-factor'))
@@ -143,8 +205,8 @@ class TestU2F(U2FTest):
             'response': json.dumps(device_response),
         })
         added_key_obj = self.user.u2f_keys.get()
-        self.assertEqual(added_key_obj.public_key, "BFp3EHDcpm5HxA4XYuCKlnNPZ3tphVzRvXsX2_J33REPU0bgFgWsUoyZHz6RGxdA84VgxDNI4lvUudr7JGmFdDk")
-        self.assertEqual(added_key_obj.key_handle, "bbavVvfXPz2w8S3IwIS0LkE1SkC3MQuXSYjAYHVPFqUJIRQTIEyM3D34Lv2G4a_PuAZkZIQ6XV3ocwp47cPYjg")
+        self.assertEqual(added_key_obj.public_key, "pQECAyYgASFYIHlYYfK3OwMqc-wvfVShLshA17BpbFvqSzVafTYshcF7IlggAkUNp9r5xt8Mp9tLpYNxp1Slt7HmKWJBSQouMaqpAbY")
+        self.assertEqual(added_key_obj.key_handle, "0A8u1AifaDA-D6tjOppWWSEUaBScNnDeashgT869algXVHf6-7ZGfVy8asVWgbjiYm5cd7i9WlrWffgMQXTOQg")
         self.assertEqual(added_key_obj.app_id, 'https://localhost:8000')
 
     def test_key_delete(self):
