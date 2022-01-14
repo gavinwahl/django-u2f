@@ -1,3 +1,7 @@
+if (!window.PublicKeyCredential) {
+  document.getElementById('webauthn-not-defined-error').style.display = 'block'
+}
+
 function handleStatus(content) {
   document.getElementById('u2f-status').textContent = content
 }
@@ -38,6 +42,10 @@ async function get_credentials() {
   processCredentials(cred)
   const resp = await navigator.credentials.get(cred)
     .catch(function() {handleStatus('Authorization Failed')})
+  if (resp === undefined) {
+    handleStatus('Authorization Failed')
+    return
+  }
   const respObject = {
     id: resp.id,
     rawId: ab2str(resp.rawId),
@@ -65,6 +73,10 @@ async function do_registration() {
     if (error.message.indexOf('attempt was made to use an object that is not') >= 0) {
       handleStatus('Registration Failed: Key may have already been registered.')
     }
+    return
+  }
+  if (resp === undefined) {
+    handleStatus('Registration failed.')
     return
   }
   const respObject = {
