@@ -1,7 +1,7 @@
-0.3.1 (unreleased)
+1.0.0 (2022-01-14)
 ------------------
 
-- Nothing changed yet.
+- Start using the WebAuthn API instead of u2f.
 
 
 0.3.0 (2018-04-24)
