@@ -6,7 +6,6 @@ import datetime
 from base64 import b32decode
 from six import StringIO
 import unittest
-from unittest import mock
 
 from django.test import TestCase, Client
 from django.urls import reverse
