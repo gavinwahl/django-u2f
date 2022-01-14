@@ -18,9 +18,6 @@ class OriginMixin(object):
             host=self.request.get_host(),
         )
 
-    def get_rp_id(self):
-        return
-
 
 def get_rp_id(request):
     return request.get_host().strip(':{}'.format(request.get_port()))
