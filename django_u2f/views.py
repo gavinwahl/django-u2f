@@ -1,4 +1,5 @@
 import os
+import json
 from base64 import b32encode, b32decode
 from collections import OrderedDict
 from six import BytesIO
@@ -19,11 +20,15 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext as _
 
+from webauthn import generate_registration_options, verify_registration_response
+from webauthn.helpers.structs import PublicKeyCredentialDescriptor, RegistrationCredential
+from webauthn.helpers import base64url_to_bytes, options_to_json, bytes_to_base64url
+
 import qrcode
 from qrcode.image.svg import SvgPathImage
-from u2flib_server import u2f
 
-from .forms import KeyResponseForm, BackupCodeForm, TOTPForm, KeyRegistrationForm
+from .forms import KeyResponseForm, BackupCodeForm, TOTPForm, KeyRegistrationForm, OriginMixin
+from .forms import get_rp_id
 from .models import TOTPDevice
 
 
@@ -73,14 +78,6 @@ class AdminU2FLoginView(U2FLoginView):
     template_name = 'admin/login.html'
 
 
-class OriginMixin(object):
-    def get_origin(self):
-        return '{scheme}://{host}'.format(
-            scheme=self.request.scheme,
-            host=self.request.get_host(),
-        )
-
-
 class AddKeyView(OriginMixin, FormView):
     template_name = 'u2f/add_key.html'
     form_class = KeyRegistrationForm
@@ -100,23 +97,38 @@ class AddKeyView(OriginMixin, FormView):
 
     def get_context_data(self, **kwargs):
         kwargs = super(AddKeyView, self).get_context_data(**kwargs)
-        request = u2f.begin_registration(self.get_origin(), [
-            key.to_json() for key in self.request.user.u2f_keys.all()
-        ])
+        request = generate_registration_options(
+            rp_id=get_rp_id(self.request),
+            rp_name=get_rp_id(self.request),
+            user_id=str(self.request.user.id),
+            user_name=str(self.request.user.id),
+            exclude_credentials=[
+                PublicKeyCredentialDescriptor(id=base64url_to_bytes(x.key_handle))
+                for x in self.request.user.u2f_keys.all()
+            ],
+        )
+        request = json.loads(options_to_json(request))
         self.request.session['u2f_registration_request'] = request
+        self.request.session['expected_origin'] = self.get_origin()
         kwargs['registration_request'] = request
 
         return kwargs
 
     def form_valid(self, form):
         response = form.cleaned_data['response']
-        request = self.request.session['u2f_registration_request']
-        del self.request.session['u2f_registration_request']
-        device, attestation_cert = u2f.complete_registration(request, response)
+        request = self.request.session.pop('u2f_registration_request')
+        expected_origin = self.request.session.pop('expected_origin')
+        verification = verify_registration_response(
+            credential=RegistrationCredential.parse_raw(response),
+            expected_challenge=base64url_to_bytes(request['challenge']),
+            expected_origin=expected_origin,
+            expected_rp_id=request['rp']['id'],
+            require_user_verification=False,
+        )
         self.request.user.u2f_keys.create(
-            public_key=device['publicKey'],
-            key_handle=device['keyHandle'],
-            app_id=device['appId'],
+            public_key=bytes_to_base64url(verification.credential_public_key),
+            key_handle=bytes_to_base64url(verification.credential_id),
+            app_id=expected_origin,
         )
         messages.success(self.request, _("Key added."))
         return super(AddKeyView, self).form_valid(form)
@@ -302,7 +314,7 @@ class AddTOTPDeviceView(OriginMixin, FormView):
     def get_context_data(self, **kwargs):
         kwargs = super(AddTOTPDeviceView, self).get_context_data(**kwargs)
         kwargs['base32_key'] = b32encode(self.key).decode()
-        kwargs['otpauth'] = self.get_otpauth_url(self.key) 
+        kwargs['otpauth'] = self.get_otpauth_url(self.key)
         kwargs['qr_svg'] = self.get_qrcode(kwargs['otpauth'])
         return kwargs
 

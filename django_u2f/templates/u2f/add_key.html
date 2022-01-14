@@ -9,8 +9,8 @@
 
 <p id="u2f-status"></p>
 <form method="post" id="u2f-form">
-    {% csrf_token %}
-    {{ form.response }}
+  {% csrf_token %}
+  {{ form.response }}
 </form>
 
 <script type="application/json" id="django_u2f_registration">
