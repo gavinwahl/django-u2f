@@ -1,6 +1,3 @@
-if (typeof window.u2f === 'undefined')
-  document.getElementById('u2f-not-defined-error').style.display = 'block';
-
 function handleStatus(content) {
   document.getElementById('u2f-status').textContent = content
 }
