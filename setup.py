@@ -22,7 +22,7 @@ setup(
     include_package_data=True,
 
     install_requires=[
-        'python-u2flib-server>=5.0.0',
+        'webauthn>=1.2.1',
         'django-argonauts',
         'django>=1.11',
         'qrcode',
