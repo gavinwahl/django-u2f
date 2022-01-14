@@ -116,10 +116,8 @@ class AddKeyView(OriginMixin, FormView):
 
     def form_valid(self, form):
         response = form.cleaned_data['response']
-        request = self.request.session['u2f_registration_request']
-        expected_origin = self.request.session['expected_origin']
-        del self.request.session['u2f_registration_request']
-        del self.request.session['expected_origin']
+        request = self.request.session.pop('u2f_registration_request')
+        expected_origin = self.request.session.pop('expected_origin')
         verification = verify_registration_response(
             credential=RegistrationCredential.parse_raw(response),
             expected_challenge=base64url_to_bytes(request['challenge']),
