@@ -1,7 +1,7 @@
-1.0.1 (unreleased)
+1.0.1 (2022-08-08)
 ------------------
 
-- Nothing changed yet.
+- Bug fixes for Django 2.2
 
 
 1.0.0 (2022-01-14)

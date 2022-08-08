@@ -13,7 +13,7 @@ def read(fname, encoding='utf-8'):
 
 setup(
     name='django-u2f',
-    version='1.0.1.dev0',
+    version='1.0.1',
     description="FIDO U2F security token support for Django",
     long_description=read('README.rst'),
     url='https://github.com/gavinwahl/django-u2f',
