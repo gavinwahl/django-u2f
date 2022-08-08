@@ -134,7 +134,7 @@ class AddKeyView(OriginMixin, FormView):
         return super(AddKeyView, self).form_valid(form)
 
     def get_success_url(self):
-        if 'next' in self.request.GET and is_safe_url(self.request.GET['next']):
+        if 'next' in self.request.GET and is_safe_url(self.request.GET['next'], allowed_hosts=self.request.get_host()):
             return self.request.GET['next']
         else:
             return super(AddKeyView, self).get_success_url()
@@ -302,7 +302,7 @@ class AddTOTPDeviceView(OriginMixin, FormView):
         img = qrcode.make(data, image_factory=SvgPathImage)
         buf = BytesIO()
         img.save(buf)
-        return buf.getvalue()
+        return buf.getvalue().decode('utf-8')
 
     @cached_property
     def key(self):
@@ -347,7 +347,7 @@ class AddTOTPDeviceView(OriginMixin, FormView):
         return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):
-        if 'next' in self.request.GET and is_safe_url(self.request.GET['next']):
+        if 'next' in self.request.GET and is_safe_url(self.request.GET['next'], allowed_hosts=self.request.get_host()):
             return self.request.GET['next']
         else:
             return super(AddTOTPDeviceView, self).get_success_url()
