@@ -1,5 +1,4 @@
 {% extends "u2f/base.html" %}
-{% load argonauts %}
 {% load i18n %}
 {% load static %}
 
@@ -30,7 +29,7 @@
   </form>
 
   <script type="application/json" id="django_u2f_request">
-    {{ forms.u2f.sign_request|json }}
+    {{ forms.u2f.sign_request|json_script:"sign_request" }}
   </script>
 </div>
 {% endif %}

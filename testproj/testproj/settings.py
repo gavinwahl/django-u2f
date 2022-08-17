@@ -36,7 +36,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admin',
     'django_extensions',
-    'argonauts',
     'django_u2f',
     'testproj',
     'debug_toolbar',

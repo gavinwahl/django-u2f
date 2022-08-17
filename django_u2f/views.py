@@ -14,11 +14,16 @@ from django.contrib import auth, messages
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
-from django.utils.http import is_safe_url, urlencode
+from django.utils.http import urlencode
 from django.shortcuts import resolve_url, get_object_or_404
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
+try:
+    from django.utils.http import url_has_allowed_host_and_scheme
+except ImportError:
+    # BBB: Django <= 2.2
+    from django.utils.http import is_safe_url as url_has_allowed_host_and_scheme
 
 from webauthn import generate_registration_options, verify_registration_response
 from webauthn.helpers.structs import PublicKeyCredentialDescriptor, RegistrationCredential
@@ -58,7 +63,7 @@ class U2FLoginView(LoginView):
             redirect_to = self.request.POST.get(auth.REDIRECT_FIELD_NAME,
                                                 self.request.GET.get(auth.REDIRECT_FIELD_NAME, ''))
             params = {}
-            if is_safe_url(url=redirect_to, allowed_hosts=self.request.get_host()):
+            if url_has_allowed_host_and_scheme(url=redirect_to, allowed_hosts=self.request.get_host()):
                 params[auth.REDIRECT_FIELD_NAME] = redirect_to
             if self.is_admin:
                 params['admin'] = 1
@@ -134,7 +139,7 @@ class AddKeyView(OriginMixin, FormView):
         return super(AddKeyView, self).form_valid(form)
 
     def get_success_url(self):
-        if 'next' in self.request.GET and is_safe_url(self.request.GET['next'], allowed_hosts=self.request.get_host()):
+        if 'next' in self.request.GET and url_has_allowed_host_and_scheme(self.request.GET['next'], allowed_hosts=self.request.get_host()):
             return self.request.GET['next']
         else:
             return super(AddKeyView, self).get_success_url()
@@ -230,7 +235,7 @@ class VerifySecondFactorView(OriginMixin, TemplateView):
 
         redirect_to = self.request.POST.get(auth.REDIRECT_FIELD_NAME,
                                             self.request.GET.get(auth.REDIRECT_FIELD_NAME, ''))
-        if not is_safe_url(url=redirect_to, allowed_hosts=self.request.get_host()):
+        if not url_has_allowed_host_and_scheme(url=redirect_to, allowed_hosts=self.request.get_host()):
             redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
         return HttpResponseRedirect(redirect_to)
 
@@ -347,7 +352,7 @@ class AddTOTPDeviceView(OriginMixin, FormView):
         return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):
-        if 'next' in self.request.GET and is_safe_url(self.request.GET['next'], allowed_hosts=self.request.get_host()):
+        if 'next' in self.request.GET and url_has_allowed_host_and_scheme(self.request.GET['next'], allowed_hosts=self.request.get_host()):
             return self.request.GET['next']
         else:
             return super(AddTOTPDeviceView, self).get_success_url()
