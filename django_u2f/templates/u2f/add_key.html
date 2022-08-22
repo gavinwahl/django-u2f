@@ -12,8 +12,6 @@
   {{ form.response }}
 </form>
 
-<script type="application/json" id="django_u2f_registration">
-  {{ registration_request|json_script:"registration_request" }}
-</script>
+{{ registration_request|json_script:"django_u2f_registration" }}
 <script src="{% static 'django_u2f/django_u2f.js' %}"></script>
 {% endblock %}

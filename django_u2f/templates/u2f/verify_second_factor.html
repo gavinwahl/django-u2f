@@ -28,9 +28,7 @@
       <input type="hidden" name="type" value="u2f">
   </form>
 
-  <script type="application/json" id="django_u2f_request">
-    {{ forms.u2f.sign_request|json_script:"sign_request" }}
-  </script>
+  {{ forms.u2f.sign_request|json_script:"django_u2f_request" }}
 </div>
 {% endif %}
 
