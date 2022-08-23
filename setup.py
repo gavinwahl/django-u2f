@@ -23,8 +23,7 @@ setup(
 
     install_requires=[
         'webauthn>=1.2.1',
-        'django-argonauts',
-        'django>=1.11',
+        'django>=2.2',
         'qrcode',
         'six',
     ],

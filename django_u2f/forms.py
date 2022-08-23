@@ -3,7 +3,7 @@ import json
 from django import forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 import webauthn
 from webauthn import options_to_json, base64url_to_bytes
