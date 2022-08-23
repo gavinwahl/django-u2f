@@ -13,7 +13,7 @@
 <h2>{% trans "Status" %}</h2>
 <ul>
   <li>{% trans "U2F" %}: {% if u2f_enabled %}{% trans "On" %}{% else %}{% trans "Off" %}{% endif %}</li>
-  <li>{% trans "TOTP" %}: {% if u2f_enabled %}{% trans "On" %}{% else %}{% trans "Off" %}{% endif %}</li>
+  <li>{% trans "TOTP" %}: {% if totp_enabled %}{% trans "On" %}{% else %}{% trans "Off" %}{% endif %}</li>
   <li>{% trans "Backup codes remaining" %}: {{ backup_codes | length }}</li>
 </ul>
 
