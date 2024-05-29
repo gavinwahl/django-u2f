@@ -350,6 +350,13 @@ class BackupCodesJsonView(View):
     def get_queryset(self):
         return self.request.user.backup_codes.all()
 
+    def get(self, request, *args, **kwargs):
+        data = [{
+            'id': code.id,
+            'code': code.code,
+        } for code in self.get_queryset()]
+        return JsonResponse({'data': data})
+
     def post(self, request, *args, **kwargs):
         for i in range(10):
             self.request.user.backup_codes.create_backup_code()
