@@ -5,14 +5,14 @@ from collections import OrderedDict
 from six import BytesIO
 from six.moves.urllib.parse import quote
 
-from django.views.generic import FormView, ListView, TemplateView
+from django.views.generic import FormView, ListView, TemplateView, View
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import load_backend
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.contrib import auth, messages
 from django.conf import settings
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.http import urlencode
 from django.shortcuts import resolve_url, get_object_or_404
@@ -32,7 +32,7 @@ from webauthn.helpers import base64url_to_bytes, options_to_json, bytes_to_base6
 import qrcode
 from qrcode.image.svg import SvgPathImage
 
-from .forms import KeyResponseForm, BackupCodeForm, TOTPForm, KeyRegistrationForm, OriginMixin
+from .forms import KeyResponseForm, BackupCodeForm, TOTPForm, KeyRegistrationForm, get_origin
 from .forms import get_rp_id
 from .models import TOTPDevice
 
@@ -83,25 +83,9 @@ class AdminU2FLoginView(U2FLoginView):
     template_name = 'admin/login.html'
 
 
-class AddKeyView(OriginMixin, FormView):
-    template_name = 'u2f/add_key.html'
-    form_class = KeyRegistrationForm
-    success_url = reverse_lazy('u2f:u2f-keys')
-
-    def dispatch(self, request, *args, **kwargs):
-        return super(AddKeyView, self).dispatch(request, *args, **kwargs)
-
-    def get_form_kwargs(self):
-        kwargs = super(AddKeyView, self).get_form_kwargs()
-        kwargs.update(
-            user=self.request.user,
-            request=self.request,
-            appId=self.get_origin(),
-        )
-        return kwargs
-
-    def get_context_data(self, **kwargs):
-        kwargs = super(AddKeyView, self).get_context_data(**kwargs)
+class AddKeyMixin:
+    def get_data(self):
+        data = {}
         request = generate_registration_options(
             rp_id=get_rp_id(self.request),
             rp_name=get_rp_id(self.request),
@@ -114,27 +98,63 @@ class AddKeyView(OriginMixin, FormView):
         )
         request = json.loads(options_to_json(request))
         self.request.session['u2f_registration_request'] = request
-        self.request.session['expected_origin'] = self.get_origin()
-        kwargs['registration_request'] = request
+        self.request.session['expected_origin'] = get_origin(self.request)
+        data['registration_request'] = request
+        return data
 
-        return kwargs
-
-    def form_valid(self, form):
-        response = form.cleaned_data['response']
-        request = self.request.session.pop('u2f_registration_request')
+    def create_key(self, response):
+        u2f_request = self.request.session.pop('u2f_registration_request')
         expected_origin = self.request.session.pop('expected_origin')
         verification = verify_registration_response(
             credential=RegistrationCredential.parse_raw(response),
-            expected_challenge=base64url_to_bytes(request['challenge']),
+            expected_challenge=base64url_to_bytes(u2f_request['challenge']),
             expected_origin=expected_origin,
-            expected_rp_id=request['rp']['id'],
+            expected_rp_id=u2f_request['rp']['id'],
             require_user_verification=False,
         )
-        self.request.user.u2f_keys.create(
+        return self.request.user.u2f_keys.create(
             public_key=bytes_to_base64url(verification.credential_public_key),
             key_handle=bytes_to_base64url(verification.credential_id),
             app_id=expected_origin,
         )
+
+
+class AddKeyJsonView(AddKeyMixin, View):
+    def get(self, *args, **kwargs):
+        data = self.get_data()
+        return JsonResponse(data)
+
+    def post(self, request, *args, **kwargs):
+        response = request.POST['response']
+        self.create_key(response)
+        return JsonResponse({})
+
+
+class AddKeyView(AddKeyMixin, FormView):
+    template_name = 'u2f/add_key.html'
+    form_class = KeyRegistrationForm
+    success_url = reverse_lazy('u2f:u2f-keys')
+
+    def dispatch(self, request, *args, **kwargs):
+        return super(AddKeyView, self).dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super(AddKeyView, self).get_form_kwargs()
+        kwargs.update(
+            user=self.request.user,
+            request=self.request,
+            appId=get_origin(self.request),
+        )
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        kwargs = super(AddKeyView, self).get_context_data(**kwargs)
+        kwargs.update(self.get_data())
+        return kwargs
+
+    def form_valid(self, form):
+        response = form.cleaned_data['response']
+        self.create_key(response)
         messages.success(self.request, _("Key added."))
         return super(AddKeyView, self).form_valid(form)
 
@@ -145,9 +165,7 @@ class AddKeyView(OriginMixin, FormView):
             return super(AddKeyView, self).get_success_url()
 
 
-class VerifySecondFactorView(OriginMixin, TemplateView):
-    template_name = 'u2f/verify_second_factor.html'
-
+class VerifySecondFactorMixin:
     @property
     def form_classes(self):
         ret = {}
@@ -157,7 +175,6 @@ class VerifySecondFactorView(OriginMixin, TemplateView):
             ret['backup'] = BackupCodeForm
         if self.user.totp_devices.exists():
             ret['totp'] = TOTPForm
-
         return ret
 
     def get_user(self):
@@ -172,6 +189,69 @@ class VerifySecondFactorView(OriginMixin, TemplateView):
             return user
         except (KeyError, AssertionError):
             return None
+
+    def get_form_kwargs(self):
+        return {
+            'user': self.user,
+            'request': self.request,
+            'appId': get_origin(self.request),
+        }
+
+    def get_forms(self):
+        kwargs = self.get_form_kwargs()
+        if self.request.method == 'GET':
+            forms = {key: form(**kwargs) for key, form in self.form_classes.items()}
+        else:
+            method = self.request.POST['type']
+            forms = {
+                key: form(**kwargs)
+                for key, form in self.form_classes.items()
+                if key != method
+            }
+            forms[method] = self.form_classes[method](self.request.POST, **kwargs)
+        return forms
+
+    def form_valid(self, form, forms):
+        if not form.validate_second_factor():
+            return self.form_invalid(forms)
+
+        del self.request.session['u2f_pre_verify_user_pk']
+        del self.request.session['u2f_pre_verify_user_backend']
+
+        auth.login(self.request, self.user)
+
+        return JsonResponse({})
+
+
+class VerifySecondFactorJsonView(VerifySecondFactorMixin, View):
+    def get(self, request, *args, **kwargs):
+        forms = self.get_forms()
+        data = {}
+        if 'u2f' in forms:
+            data['django_u2f_request'] = forms['u2f'].sign_request
+        return JsonResponse(data)
+
+    def dispatch(self, request, *args, **kwargs):
+        self.user = self.get_user()
+        if self.user is None:
+            return JsonResponse(None, status=403)
+        return super(VerifySecondFactorJsonView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        forms = self.get_forms()
+        form = forms[request.POST['type']]
+        if form.is_valid():
+            return self.form_valid(form, forms)
+        else:
+            return self.form_invalid(forms)
+
+    def form_invalid(self, forms):
+        form = forms[self.request.POST['type']]
+        return JsonResponse(form.errors.get_json_data(), status=400)
+
+
+class VerifySecondFactorView(VerifySecondFactorMixin, TemplateView):
+    template_name = 'u2f/verify_second_factor.html'
 
     def dispatch(self, request, *args, **kwargs):
         self.user = self.get_user()
@@ -191,27 +271,6 @@ class VerifySecondFactorView(OriginMixin, TemplateView):
         return self.render_to_response(self.get_context_data(
             forms=forms,
         ))
-
-    def get_form_kwargs(self):
-        return {
-            'user': self.user,
-            'request': self.request,
-            'appId': self.get_origin(),
-        }
-
-    def get_forms(self):
-        kwargs = self.get_form_kwargs()
-        if self.request.method == 'GET':
-            forms = {key: form(**kwargs) for key, form in self.form_classes.items()}
-        else:
-            method = self.request.POST['type']
-            forms = {
-                key: form(**kwargs)
-                for key, form in self.form_classes.items()
-                if key != method
-            }
-            forms[method] = self.form_classes[method](self.request.POST, **kwargs)
-        return forms
 
     def get_context_data(self, **kwargs):
         if 'forms' not in kwargs:
@@ -250,6 +309,26 @@ class TwoFactorSettingsView(TemplateView):
         context['totp_enabled'] = self.request.user.totp_devices.exists()
         return context
 
+
+class KeyManagementJsonView(View):
+    def get_queryset(self):
+        return self.request.user.u2f_keys.all()
+
+    def get(self, request, *args, **kwargs):
+        data = [{
+            'id': key.id,
+            'created_at': key.created_at.isoformat(),
+            'last_used_at': key.last_used_at.isoformat() if key.last_used_at else None,
+        } for key in self.get_queryset()]
+        return JsonResponse({'data': data})
+
+    def delete(self, request, *args, **kwargs):
+        data = json.loads(request.body)
+        key = get_object_or_404(self.get_queryset(), pk=data['key_id'])
+        key.delete()
+        return JsonResponse(None, status=204)
+
+
 class KeyManagementView(ListView):
     template_name = 'u2f/key_list.html'
 
@@ -267,6 +346,16 @@ class KeyManagementView(ListView):
         return HttpResponseRedirect(reverse('u2f:u2f-keys'))
 
 
+class BackupCodesJsonView(View):
+    def get_queryset(self):
+        return self.request.user.backup_codes.all()
+
+    def post(self, request, *args, **kwargs):
+        for i in range(10):
+            self.request.user.backup_codes.create_backup_code()
+        return JsonResponse({})
+
+
 class BackupCodesView(ListView):
     template_name = 'u2f/backup_codes.html'
 
@@ -279,11 +368,7 @@ class BackupCodesView(ListView):
         return HttpResponseRedirect(self.request.build_absolute_uri())
 
 
-class AddTOTPDeviceView(OriginMixin, FormView):
-    form_class = TOTPForm
-    template_name = 'u2f/totp_device.html'
-    success_url = reverse_lazy('u2f:two-factor-settings')
-
+class AddTOTPDeviceMixin:
     def gen_key(self):
         return os.urandom(20)
 
@@ -316,20 +401,59 @@ class AddTOTPDeviceView(OriginMixin, FormView):
         except KeyError:
             return self.gen_key()
 
+    def get_data(self, **kwargs):
+        otp_auth = self.get_otpauth_url(self.key)
+        return {
+            'base32_key': b32encode(self.key).decode(),
+            'otpauth': otp_auth,
+            'qr_svg': self.get_qrcode(otp_auth),
+        }
+
+    def get_extra_form_kwargs(self):
+        return {
+            'user': self.request.user,
+            'request': self.request,
+            'appId': get_origin(self.request),
+        }
+
+
+class AddTOTPDeviceJsonView(AddTOTPDeviceMixin, View):
+    def get(self, request, *args, **kwargs):
+        data = self.get_data()
+        return JsonResponse(data)
+
+    def post(self, request, *args, **kwargs):
+        form_kwargs = self.get_extra_form_kwargs()
+        form_kwargs['data'] = request.POST
+        form = TOTPForm(**form_kwargs)
+        if form.is_valid():
+            device = TOTPDevice(
+                user=self.request.user,
+                key=self.key,
+            )
+            if device.validate_token(form.cleaned_data['token']):
+                device.save()
+                return JsonResponse({})
+            else:
+                assert not device.pk
+                form.add_error('token', TOTPForm.INVALID_ERROR_MESSAGE)
+                return JsonResponse(form.errors.get_json_data(), status=400)
+        return JsonResponse(form.errors.get_json_data(), status=400)
+
+
+class AddTOTPDeviceView(AddTOTPDeviceMixin, FormView):
+    form_class = TOTPForm
+    template_name = 'u2f/totp_device.html'
+    success_url = reverse_lazy('u2f:two-factor-settings')
+
     def get_context_data(self, **kwargs):
         kwargs = super(AddTOTPDeviceView, self).get_context_data(**kwargs)
-        kwargs['base32_key'] = b32encode(self.key).decode()
-        kwargs['otpauth'] = self.get_otpauth_url(self.key)
-        kwargs['qr_svg'] = self.get_qrcode(kwargs['otpauth'])
+        kwargs.update(self.get_data())
         return kwargs
 
     def get_form_kwargs(self):
         kwargs = super(AddTOTPDeviceView, self).get_form_kwargs()
-        kwargs.update(
-            user=self.request.user,
-            request=self.request,
-            appId=self.get_origin(),
-        )
+        kwargs.update(self.get_extra_form_kwargs())
         return kwargs
 
     def form_valid(self, form):
@@ -358,6 +482,25 @@ class AddTOTPDeviceView(OriginMixin, FormView):
             return super(AddTOTPDeviceView, self).get_success_url()
 
 
+class TOTPDeviceManagementJsonView(View):
+    def get_queryset(self):
+        return self.request.user.totp_devices.all()
+
+    def get(self, request, *args, **kwargs):
+        data = [{
+            'id': device.id,
+            'created_at': device.created_at.isoformat(),
+            'last_used_at': device.last_used_at.isoformat() if device.last_used_at else None,
+        } for device in self.get_queryset()]
+        return JsonResponse({'data': data})
+
+    def delete(self, request, *args, **kwargs):
+        data = json.loads(request.body)
+        device = get_object_or_404(self.get_queryset(), pk=data['device_id'])
+        device.delete()
+        return JsonResponse(None, status=200)
+
+
 class TOTPDeviceManagementView(ListView):
     template_name = 'u2f/totpdevice_list.html'
 
@@ -372,11 +515,23 @@ class TOTPDeviceManagementView(ListView):
         return HttpResponseRedirect(reverse('u2f:totp-devices'))
 
 
-add_key = login_required(AddKeyView.as_view())
-verify_second_factor = VerifySecondFactorView.as_view()
 login = U2FLoginView.as_view()
-keys = login_required(KeyManagementView.as_view())
 two_factor_settings = login_required(TwoFactorSettingsView.as_view())
+
 backup_codes = login_required(BackupCodesView.as_view())
+backup_codes_json = login_required(BackupCodesJsonView.as_view())
+
+add_key = login_required(AddKeyView.as_view())
+add_key_json = login_required(AddKeyJsonView.as_view())
+
+verify_second_factor = VerifySecondFactorView.as_view()
+verify_second_factor_json = VerifySecondFactorJsonView.as_view()
+
+keys = login_required(KeyManagementView.as_view())
+keys_json = login_required(KeyManagementJsonView.as_view())
+
 add_totp = login_required(AddTOTPDeviceView.as_view())
+add_totp_json = login_required(AddTOTPDeviceJsonView.as_view())
+
 totp_devices = login_required(TOTPDeviceManagementView.as_view())
+totp_devices_json = login_required(TOTPDeviceManagementJsonView.as_view())

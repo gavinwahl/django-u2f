@@ -3,7 +3,12 @@ if (!window.PublicKeyCredential) {
 }
 
 function handleStatus(content) {
-  document.getElementById('u2f-status').textContent = content
+  const el = document.getElementById('u2f-status');
+  if (el) {
+    el.textContent = content;
+  } else {
+    console.error(content);
+  }
 }
 
 function ab2str(buf) {
@@ -37,8 +42,7 @@ function processRegistrationOptions(opt) {
   opt.user.id = str2ab(opt.user.id)
 }
 
-async function get_credentials() {
-  let cred = JSON.parse(document.getElementById('django_u2f_request').innerHTML);
+async function get_credentials_value(cred) {
   processCredentials(cred)
   const resp = await navigator.credentials.get(cred)
     .catch(function() {handleStatus('Authorization Failed')})
@@ -58,13 +62,19 @@ async function get_credentials() {
     type: resp.type,
     clientExtensionResults: resp.getClientExtensionResults(),
   }
+  return respObject
+}
+
+async function get_credentials() {
+  let cred = JSON.parse(document.getElementById('django_u2f_request').innerHTML);
+  const respObject = get_credentials_value(cred)
   const form = document.getElementById('u2f-form')
   form.response.value = JSON.stringify(respObject)
   form.submit()
 }
 
-async function do_registration() {
-  let opt = JSON.parse(document.getElementById('django_u2f_registration').innerHTML)
+
+async function do_registration_value(opt) {
   processRegistrationOptions(opt)
   let resp
   try {
@@ -79,7 +89,7 @@ async function do_registration() {
     handleStatus('Registration failed.')
     return
   }
-  const respObject = {
+  return {
     id: resp.id,
     rawId: ab2str(resp.rawId),
     response: {
@@ -89,6 +99,11 @@ async function do_registration() {
     type: resp.type,
     clientExtensionResults: resp.getClientExtensionResults(),
   }
+}
+
+async function do_registration() {
+  let opt = JSON.parse(document.getElementById('django_u2f_registration').innerHTML)
+  const respObject = do_registration_value(opt)
   const form = document.getElementById('u2f-form')
   form.response.value = JSON.stringify(respObject)
   form.submit()
