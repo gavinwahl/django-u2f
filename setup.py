@@ -22,7 +22,7 @@ setup(
     include_package_data=True,
 
     install_requires=[
-        'webauthn>=1.2.1',
+        'webauthn>=1.2.1,<2.0.0',
         'django>=2.2',
         'qrcode',
         'six',

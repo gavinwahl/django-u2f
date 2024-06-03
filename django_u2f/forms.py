@@ -11,12 +11,11 @@ from webauthn.helpers.structs import PublicKeyCredentialDescriptor, Authenticati
 from webauthn.helpers.exceptions import InvalidAuthenticationResponse
 
 
-class OriginMixin(object):
-    def get_origin(self):
-        return '{scheme}://{host}'.format(
-            scheme=self.request.scheme,
-            host=self.request.get_host(),
-        )
+def get_origin(request):
+    return '{scheme}://{host}'.format(
+        scheme=request.scheme,
+        host=request.get_host(),
+    )
 
 
 def get_rp_id(request):
@@ -31,7 +30,27 @@ class SecondFactorForm(forms.Form):
         return super(SecondFactorForm, self).__init__(*args, **kwargs)
 
 
-class KeyResponseForm(SecondFactorForm, OriginMixin):
+def set_u2f_verification_session_vars(request, user):
+    options = webauthn.generate_authentication_options(
+        rp_id=get_rp_id(request),
+        allow_credentials=[
+            PublicKeyCredentialDescriptor(id=base64url_to_bytes(x.key_handle))
+            for x in user.u2f_keys.all()
+        ]
+    )
+    options = options_to_json(options)
+    options = json.loads(options)
+
+    options['extensions'] = {
+        'appid': get_origin(request)
+    }
+    options = {'publicKey': options}
+    request.session['u2f_sign_request'] = options
+    request.session['expected_origin'] = get_origin(request)
+    return options
+
+
+class KeyResponseForm(SecondFactorForm):
     response = forms.CharField()
 
     def __init__(self, *args, **kwargs):
@@ -39,23 +58,8 @@ class KeyResponseForm(SecondFactorForm, OriginMixin):
         if self.data:
             self.sign_request = self.request.session['u2f_sign_request']
         else:
-            options = webauthn.generate_authentication_options(
-                rp_id=get_rp_id(self.request),
-                allow_credentials=[
-                    PublicKeyCredentialDescriptor(id=base64url_to_bytes(x.key_handle))
-                    for x in self.user.u2f_keys.all()
-                ]
-            )
-            options = options_to_json(options)
-            options = json.loads(options)
-
-            options['extensions'] = {
-                'appid': self.get_origin()
-            }
-            options = {'publicKey': options}
+            options = set_u2f_verification_session_vars(self.request, self.user)
             self.sign_request = options
-            self.request.session['u2f_sign_request'] = options
-            self.request.session['expected_origin'] = self.get_origin()
 
     def validate_second_factor(self):
         response = self.cleaned_data['response']
