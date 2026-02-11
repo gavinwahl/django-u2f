@@ -1,9 +1,6 @@
-from __future__ import division
-
 import datetime
 import string
 import hmac
-import six
 
 from django.db import models
 from django.conf import settings
@@ -84,8 +81,9 @@ class TOTPDevice(models.Model):
         if self.last_t is not None:
             times_to_check = [t for t in times_to_check if T(t) > self.last_t]
 
-        # not sure why django gives you a memory view instead of a bytes object
-        key = six.binary_type(self.key)
+        # psycopg2 gives a memory view instead of a bytes object.
+        # https://code.djangoproject.com/ticket/27813
+        key = bytes(self.key)
 
         token = str(token)
         for t in times_to_check:

@@ -2,8 +2,8 @@ import os
 import json
 from base64 import b32encode, b32decode
 from collections import OrderedDict
-from six import BytesIO
-from six.moves.urllib.parse import quote
+from io import BytesIO
+from urllib.parse import quote
 
 from django.views.generic import FormView, ListView, TemplateView, View
 from django.contrib.auth.forms import AuthenticationForm
@@ -26,8 +26,9 @@ except ImportError:
     from django.utils.http import is_safe_url as url_has_allowed_host_and_scheme
 
 from webauthn import generate_registration_options, verify_registration_response
-from webauthn.helpers.structs import PublicKeyCredentialDescriptor, RegistrationCredential
+from webauthn.helpers.structs import PublicKeyCredentialDescriptor
 from webauthn.helpers import base64url_to_bytes, options_to_json, bytes_to_base64url
+from webauthn.helpers.parse_registration_credential_json import parse_registration_credential_json
 
 import qrcode
 from qrcode.image.svg import SvgPathImage
@@ -89,7 +90,7 @@ class AddKeyMixin:
         request = generate_registration_options(
             rp_id=get_rp_id(self.request),
             rp_name=get_rp_id(self.request),
-            user_id=str(self.request.user.id),
+            user_id=str(self.request.user.id).encode('utf-8'),
             user_name=str(self.request.user.id),
             exclude_credentials=[
                 PublicKeyCredentialDescriptor(id=base64url_to_bytes(x.key_handle))
@@ -106,7 +107,7 @@ class AddKeyMixin:
         u2f_request = self.request.session.pop('u2f_registration_request')
         expected_origin = self.request.session.pop('expected_origin')
         verification = verify_registration_response(
-            credential=RegistrationCredential.parse_raw(response),
+            credential=parse_registration_credential_json(response),
             expected_challenge=base64url_to_bytes(u2f_request['challenge']),
             expected_origin=expected_origin,
             expected_rp_id=u2f_request['rp']['id'],

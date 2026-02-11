@@ -4,7 +4,7 @@ import json
 import string
 import datetime
 from base64 import b32decode
-from six import StringIO
+from io import StringIO
 import unittest
 
 from django.test import TestCase, Client
@@ -171,7 +171,7 @@ class TestU2F(U2FTest):
             'response': json.dumps(device_response),
             'type': 'u2f',
         })
-        self.assertEquals(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 302)
         self.assertTrue(resp['location'].endswith('/next/'))
         self.assertEqual(str(self.client.session[SESSION_KEY]), str(self.user.id))
 

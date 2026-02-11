@@ -7,8 +7,9 @@ from django.utils.translation import gettext_lazy as _
 
 import webauthn
 from webauthn import options_to_json, base64url_to_bytes
-from webauthn.helpers.structs import PublicKeyCredentialDescriptor, AuthenticationCredential
+from webauthn.helpers.structs import PublicKeyCredentialDescriptor
 from webauthn.helpers.exceptions import InvalidAuthenticationResponse
+from webauthn.helpers.parse_authentication_credential_json import parse_authentication_credential_json
 
 
 def get_origin(request):
@@ -73,7 +74,7 @@ class KeyResponseForm(SecondFactorForm):
             if json_data['clientExtensionResults'].get('appid', False):
                 expected_rp_id = key.app_id
             verification = webauthn.verify_authentication_response(
-                credential=AuthenticationCredential.parse_raw(response),
+                credential=parse_authentication_credential_json(response),
                 expected_challenge=base64url_to_bytes(data['challenge']),
                 expected_rp_id=expected_rp_id,
                 expected_origin=self.request.session['expected_origin'],

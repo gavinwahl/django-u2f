@@ -5,7 +5,6 @@ import struct
 import hmac
 import hashlib
 import time
-import six
 
 
 def hotp(key, counter, digits=6):
@@ -30,7 +29,7 @@ def hotp(key, counter, digits=6):
 
     msg = struct.pack('>Q', counter)
     hs = hmac.new(key, msg, hashlib.sha1).digest()
-    offset = six.indexbytes(hs, 19) & 0x0f
+    offset = hs[19] & 0x0f
     val = struct.unpack('>L', hs[offset:offset + 4])[0] & 0x7fffffff
     return '{val:0{digits}d}'.format(val=val % 10 ** digits, digits=digits)
 

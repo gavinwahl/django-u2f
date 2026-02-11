@@ -1,7 +1,8 @@
-1.0.2 (unreleased)
+2.0.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Remove support for python<3.9
+- Upgrade to webauthn 2.0
 
 
 1.0.1 (2022-08-08)

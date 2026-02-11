@@ -13,7 +13,7 @@ def read(fname, encoding='utf-8'):
 
 setup(
     name='django-u2f',
-    version='1.0.2.dev0',
+    version='2.0.0.dev0',
     description="FIDO U2F security token support for Django",
     long_description=read('README.rst'),
     url='https://github.com/gavinwahl/django-u2f',
@@ -22,10 +22,9 @@ setup(
     include_package_data=True,
 
     install_requires=[
-        'webauthn>=1.2.1,<2.0.0',
+        'webauthn>=2.0.0',
         'django>=2.2',
         'qrcode',
-        'six',
     ],
     author='Gavin Wahl',
     author_email='gavinwahl@gmail.com',
@@ -35,10 +34,13 @@ setup(
         'Framework :: Django',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Topic :: Security',
         'Topic :: Security :: Cryptography',
     ],
+    python_requires='>=3.9',
 )
