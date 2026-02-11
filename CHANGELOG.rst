@@ -3,6 +3,8 @@
 
 - Remove support for python<3.9
 - Upgrade to webauthn 2.0
+- Use native browser WebAuthn JSON serialization APIs. Requires Baseline 2025
+  browser support.
 
 
 1.0.1 (2022-08-08)
