@@ -12,7 +12,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.contrib import auth, messages
 from django.conf import settings
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.http import urlencode
 from django.shortcuts import resolve_url, get_object_or_404
@@ -235,7 +235,7 @@ class VerifySecondFactorJsonView(VerifySecondFactorMixin, View):
     def dispatch(self, request, *args, **kwargs):
         self.user = self.get_user()
         if self.user is None:
-            return JsonResponse(None, status=403)
+            return JsonResponse({"error": "Forbidden"}, status=403)
         return super(VerifySecondFactorJsonView, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -327,7 +327,7 @@ class KeyManagementJsonView(View):
         data = json.loads(request.body)
         key = get_object_or_404(self.get_queryset(), pk=data['key_id'])
         key.delete()
-        return JsonResponse(None, status=204)
+        return HttpResponse(status=204)
 
 
 class KeyManagementView(ListView):
@@ -506,7 +506,7 @@ class TOTPDeviceManagementJsonView(View):
         data = json.loads(request.body)
         device = get_object_or_404(self.get_queryset(), pk=data['device_id'])
         device.delete()
-        return JsonResponse(None, status=200)
+        return HttpResponse(status=204)
 
 
 class TOTPDeviceManagementView(ListView):

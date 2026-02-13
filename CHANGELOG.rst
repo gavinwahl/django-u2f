@@ -5,6 +5,7 @@
 - Upgrade to webauthn 2.0
 - Use native browser WebAuthn JSON serialization APIs. Requires Baseline 2025
   browser support.
+- JSON API delete endpoints return 204 No Content instead of a JSON null body.
 
 
 1.0.1 (2022-08-08)
