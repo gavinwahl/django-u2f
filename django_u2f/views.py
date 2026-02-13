@@ -28,6 +28,7 @@ except ImportError:
 from webauthn import generate_registration_options, verify_registration_response
 from webauthn.helpers.structs import PublicKeyCredentialDescriptor
 from webauthn.helpers import base64url_to_bytes, options_to_json, bytes_to_base64url
+from webauthn.helpers.exceptions import WebAuthnException
 from webauthn.helpers.parse_registration_credential_json import parse_registration_credential_json
 
 import qrcode
@@ -127,7 +128,10 @@ class AddKeyJsonView(AddKeyMixin, View):
 
     def post(self, request, *args, **kwargs):
         response = request.POST['response']
-        self.create_key(response)
+        try:
+            self.create_key(response)
+        except WebAuthnException:
+            return JsonResponse({"error": "Invalid response"}, status=400)
         return JsonResponse({})
 
 
