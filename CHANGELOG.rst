@@ -1,7 +1,7 @@
 2.0.0 (unreleased)
 ------------------
 
-- Remove support for python<3.9
+- Remove support for python<3.9 and Django<3.1
 - Upgrade to webauthn 2.0
 - Use native browser WebAuthn JSON serialization APIs. Requires Baseline 2025
   browser support.

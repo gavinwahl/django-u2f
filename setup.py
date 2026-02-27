@@ -23,7 +23,7 @@ setup(
 
     install_requires=[
         'webauthn>=2.0.0',
-        'django>=2.2',
+        'django>=3.1',
         'qrcode',
     ],
     author='Gavin Wahl',

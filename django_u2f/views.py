@@ -18,12 +18,8 @@ from django.utils.http import urlencode
 from django.shortcuts import resolve_url, get_object_or_404
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.functional import cached_property
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
-try:
-    from django.utils.http import url_has_allowed_host_and_scheme
-except ImportError:
-    # BBB: Django <= 2.2
-    from django.utils.http import is_safe_url as url_has_allowed_host_and_scheme
 
 from webauthn import generate_registration_options, verify_registration_response
 from webauthn.helpers.structs import (
