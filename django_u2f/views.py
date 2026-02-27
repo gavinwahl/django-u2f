@@ -26,7 +26,11 @@ except ImportError:
     from django.utils.http import is_safe_url as url_has_allowed_host_and_scheme
 
 from webauthn import generate_registration_options, verify_registration_response
-from webauthn.helpers.structs import PublicKeyCredentialDescriptor
+from webauthn.helpers.structs import (
+    AuthenticatorSelectionCriteria,
+    PublicKeyCredentialDescriptor,
+    UserVerificationRequirement,
+)
 from webauthn.helpers import base64url_to_bytes, options_to_json, bytes_to_base64url
 from webauthn.helpers.exceptions import WebAuthnException
 from webauthn.helpers.parse_registration_credential_json import parse_registration_credential_json
@@ -90,9 +94,12 @@ class AddKeyMixin:
         data = {}
         request = generate_registration_options(
             rp_id=get_rp_id(self.request),
-            rp_name=get_rp_id(self.request),
+            rp_name=get_current_site(self.request).name,
             user_id=str(self.request.user.id).encode('utf-8'),
-            user_name=str(self.request.user.id),
+            user_name=self.request.user.get_username(),
+            authenticator_selection=AuthenticatorSelectionCriteria(
+                user_verification=UserVerificationRequirement.DISCOURAGED,
+            ),
             exclude_credentials=[
                 PublicKeyCredentialDescriptor(id=base64url_to_bytes(x.key_handle))
                 for x in self.request.user.u2f_keys.all()

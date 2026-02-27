@@ -20,7 +20,7 @@ def get_origin(request):
 
 
 def get_rp_id(request):
-    return request.get_host().strip(':{}'.format(request.get_port()))
+    return request.get_host().split(':')[0]
 
 
 class SecondFactorForm(forms.Form):
