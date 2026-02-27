@@ -21,14 +21,6 @@ class U2FKey(models.Model):
     key_handle = models.TextField()
     app_id = models.TextField()
 
-    def to_json(self):
-        return {
-            'publicKey': self.public_key,
-            'keyHandle': self.key_handle,
-            'appId': self.app_id,
-            'version': 'U2F_V2',
-        }
-
 
 class BackupCodeManager(models.Manager):
     def create_backup_code(self, code=None):

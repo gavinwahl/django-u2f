@@ -6,6 +6,7 @@
 - Use native browser WebAuthn JSON serialization APIs. Requires Baseline 2025
   browser support.
 - JSON API delete endpoints return 204 No Content instead of a JSON null body.
+- Remove dead U2FKey.to_json() method left over from u2flib migration.
 
 
 1.0.1 (2022-08-08)
