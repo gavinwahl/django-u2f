@@ -1,7 +1,15 @@
-1.0.2 (unreleased)
+2.0.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Remove support for python<3.9 and Django<3.1
+- Upgrade to webauthn 2.0
+- Use native browser WebAuthn JSON serialization APIs. Requires Baseline 2025
+  browser support.
+- JSON API delete endpoints return 204 No Content instead of a JSON null body.
+- Remove dead U2FKey.to_json() method left over from u2flib migration.
+- Fix get_rp_id stripping wrong characters from hostnames containing port digits.
+- Use site name for rp_name and username for user_name in WebAuthn registration.
+- Set user_verification to discouraged during registration (unnecessary for 2FA).
 
 
 1.0.1 (2022-08-08)

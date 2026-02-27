@@ -2,8 +2,8 @@ import os
 import json
 from base64 import b32encode, b32decode
 from collections import OrderedDict
-from six import BytesIO
-from six.moves.urllib.parse import quote
+from io import BytesIO
+from urllib.parse import quote
 
 from django.views.generic import FormView, ListView, TemplateView, View
 from django.contrib.auth.forms import AuthenticationForm
@@ -12,22 +12,24 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.contrib import auth, messages
 from django.conf import settings
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.http import urlencode
 from django.shortcuts import resolve_url, get_object_or_404
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.functional import cached_property
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
-try:
-    from django.utils.http import url_has_allowed_host_and_scheme
-except ImportError:
-    # BBB: Django <= 2.2
-    from django.utils.http import is_safe_url as url_has_allowed_host_and_scheme
 
 from webauthn import generate_registration_options, verify_registration_response
-from webauthn.helpers.structs import PublicKeyCredentialDescriptor, RegistrationCredential
+from webauthn.helpers.structs import (
+    AuthenticatorSelectionCriteria,
+    PublicKeyCredentialDescriptor,
+    UserVerificationRequirement,
+)
 from webauthn.helpers import base64url_to_bytes, options_to_json, bytes_to_base64url
+from webauthn.helpers.exceptions import WebAuthnException
+from webauthn.helpers.parse_registration_credential_json import parse_registration_credential_json
 
 import qrcode
 from qrcode.image.svg import SvgPathImage
@@ -88,9 +90,12 @@ class AddKeyMixin:
         data = {}
         request = generate_registration_options(
             rp_id=get_rp_id(self.request),
-            rp_name=get_rp_id(self.request),
-            user_id=str(self.request.user.id),
-            user_name=str(self.request.user.id),
+            rp_name=get_current_site(self.request).name,
+            user_id=str(self.request.user.id).encode('utf-8'),
+            user_name=self.request.user.get_username(),
+            authenticator_selection=AuthenticatorSelectionCriteria(
+                user_verification=UserVerificationRequirement.DISCOURAGED,
+            ),
             exclude_credentials=[
                 PublicKeyCredentialDescriptor(id=base64url_to_bytes(x.key_handle))
                 for x in self.request.user.u2f_keys.all()
@@ -106,7 +111,7 @@ class AddKeyMixin:
         u2f_request = self.request.session.pop('u2f_registration_request')
         expected_origin = self.request.session.pop('expected_origin')
         verification = verify_registration_response(
-            credential=RegistrationCredential.parse_raw(response),
+            credential=parse_registration_credential_json(response),
             expected_challenge=base64url_to_bytes(u2f_request['challenge']),
             expected_origin=expected_origin,
             expected_rp_id=u2f_request['rp']['id'],
@@ -126,7 +131,10 @@ class AddKeyJsonView(AddKeyMixin, View):
 
     def post(self, request, *args, **kwargs):
         response = request.POST['response']
-        self.create_key(response)
+        try:
+            self.create_key(response)
+        except WebAuthnException:
+            return JsonResponse({"error": "Invalid response"}, status=400)
         return JsonResponse({})
 
 
@@ -234,7 +242,7 @@ class VerifySecondFactorJsonView(VerifySecondFactorMixin, View):
     def dispatch(self, request, *args, **kwargs):
         self.user = self.get_user()
         if self.user is None:
-            return JsonResponse(None, status=403)
+            return JsonResponse({"error": "Forbidden"}, status=403)
         return super(VerifySecondFactorJsonView, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -326,7 +334,7 @@ class KeyManagementJsonView(View):
         data = json.loads(request.body)
         key = get_object_or_404(self.get_queryset(), pk=data['key_id'])
         key.delete()
-        return JsonResponse(None, status=204)
+        return HttpResponse(status=204)
 
 
 class KeyManagementView(ListView):
@@ -505,7 +513,7 @@ class TOTPDeviceManagementJsonView(View):
         data = json.loads(request.body)
         device = get_object_or_404(self.get_queryset(), pk=data['device_id'])
         device.delete()
-        return JsonResponse(None, status=200)
+        return HttpResponse(status=204)
 
 
 class TOTPDeviceManagementView(ListView):
